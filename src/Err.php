@@ -16,12 +16,12 @@ class Err {
 	private static $error_list_ignore = [];
 
 	/**
-	 * @var integer A bitwise derived integer made with PHP Error Constants controlling which error codes to log silently
+	 * @var integer A bitwise derived integer made with PHP Error Constants controlling which error codes to log silently, default set in initialise
 	 */
 	private static $errors_background = null;
 
 	/**
-	 * @var integer A bitwise derived integer made with PHP Error Constants controlling which error codes to ignore
+	 * @var integer A bitwise derived integer made with PHP Error Constants controlling which error codes to ignore, default set in initialise
 	 */
 	private static $errors_ignore = null;
 
@@ -51,7 +51,7 @@ class Err {
 	private static $termination_message = false;
 
 	/**
-	 * @var string The timestamp to record with logged errors
+	 * @var string The timestamp to record with logged errors, default set in initialise
 	 */
 	private static $timestamp = null;
 

@@ -99,12 +99,12 @@ class Err {
 		error_reporting(0);
 
 		// register functions
-		set_error_handler('Err::process');
+		set_error_handler('Err::handler');
 		register_shutdown_function('Err::shutdownCheckForFatal');
 		register_shutdown_function('Err::shutdownFinal');
 	}
 
-	public static function process($err_no, $err_str, $err_file, $err_line)
+	public static function handler($err_no, $err_str, $err_file, $err_line)
 	{
 		if (self::$errors_ignore & $err_no) {
 			// this error should not be logged, the script can continue
@@ -195,7 +195,7 @@ class Err {
 		// ...so if the last error matches, record that the script has terminated and pass details to be processed
 		if ($error !== NULL && in_array($error['type'], $core_fatal, true)) {
 			self::$script_terminated = true;
-			self::process($error['type'], $error['message'], $error['file'], $error['line']);
+			self::handler($error['type'], $error['message'], $error['file'], $error['line']);
 		}
 	}
 

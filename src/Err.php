@@ -28,17 +28,17 @@ class Err {
 	/**
 	 * @var integer A bitwise derived integer made with PHP Error Constants controlling which error codes to log silently
 	 */
-	private static $errors_background = null;
+	private static $errors_background = 0;
 
 	/**
 	 * @var integer A bitwise derived integer made with PHP Error Constants controlling which error codes to ignore
 	 */
-	private static $errors_ignore = null;
+	private static $errors_ignore = 0;
 
 	/**
 	 * @var string The path to log directory
 	 */
-	private static $log_directory = null;
+	private static $log_directory = '';
 
 	/**
 	 * @var string The name of the file where background errors will be logged
@@ -51,16 +51,16 @@ class Err {
 	private static $log_file_terminate = 'terminate.txt';
 
 	/**
-	 * @var bool|string A string to echo when the script is terminated, otherwise the error logged is dumped
+	 * @var false|string A string to echo when the script is terminated, otherwise the error log is dumped
 	 */
 	private static $termination_message = false;
 
 	/**
 	 * @var string Timestamp to use in log file with logged errors
 	 */
-	private static $timestamp = null;
+	private static $timestamp = '';
 
-	
+
 	public static function errorHandler($err_no, $err_str, $err_file, $err_line)
 	{
 		if (self::$errors_ignore & $err_no) {
@@ -179,13 +179,13 @@ class Err {
 		}
 
 		// use defaults if parameters not set
-		if (self::$timestamp === null) {
+		if (self::$timestamp === '') {
 			self::$timestamp = time();
 		}
-		if (self::$errors_ignore === null) {
+		if (self::$errors_ignore === 0) {
 			self::$errors_ignore = E_NOTICE | E_USER_NOTICE;
 		}
-		if (self::$errors_background === null) {
+		if (self::$errors_background === 0) {
 			self::$errors_background = E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED;
 		}
 

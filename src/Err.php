@@ -223,6 +223,11 @@ class Err {
 		self::$log_file_terminate = $file_name;
 	}
 
+	public static function setTerminationMessage($termination_message)
+	{
+		self::$termination_message = $termination_message;
+	}
+
 	/**
 	 * Set class parameters using submitted array values
 	 * @param $parameters
@@ -230,8 +235,8 @@ class Err {
 	public static function setParametersWithArray($parameters)
 	{
 		$can_set = [
-			'errors_to_ignore',
-			'errors_to_log',
+			'errors_background',
+			'errors_ignore',
 			'log_directory',
 			'log_file_background',
 			'log_file_terminate',

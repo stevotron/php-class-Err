@@ -25,7 +25,7 @@ The class categorises errors as three types, *ignore*, *background* and *termina
 
 If only *ignore* errors occur during run time, nothing is logged and the script runs as intended.
 
-If any *background* errors occur on top of any *ignore* errors, then all errors will be logged in the defined background file.
+If any *background* errors occur on top of any *ignore* errors, then all errors will be logged in the defined background file and the script runs as intended.
 
 If any errors occur that are not listed in *ignore* or *background* then the script will terminate. Errors will be dumped to screen, or logged in the defined terminate file depending on the property value for $termination_message.
 

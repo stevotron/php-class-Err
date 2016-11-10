@@ -257,13 +257,14 @@ class Err {
 	 */
 	public static function shutdownCheckForFatal()
 	{
-		// the following are fatal errors which will not be processed by the function set in set_error_handler()...
+		// The following are fatal errors which will not be processed by the function set in set_error_handler()
+		// They will need to be manually passed to errorHandler()
 		$core_fatal = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
 
-		// get the last error
+		// Get the last error
 		$error = error_get_last();
 
-		// ...so if the last error matches, record that the script has terminated and pass details to be processed
+		// If the last error has a match in $core_fatal, record that the script has terminated and pass details to be processed
 		if ($error !== NULL && in_array($error['type'], $core_fatal, true)) {
 			self::$count_error_terminate++;
 			self::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
@@ -285,21 +286,15 @@ class Err {
 			exit;
 		}
 
-		if (self::$count_error_terminate > 0) {
-			$log_file_path = self::$log_directory . '/' . self::$log_file_terminate;
-		} else if (self::$count_error_background > 0) {
-			$log_file_path = self::$log_directory . '/' . self::$log_file_background;
-		} else {
-			$log_file_path = null;
-		}
+		if (self::$count_error_terminate > 0 || self::$count_error_background > 0) {
+			$log_file = self::$log_directory . '/' . (self::$count_error_terminate > 0 ? self::$log_file_terminate : self::$log_file_background);
 
-		if ($log_file_path) {
 			$data = [
 				'timestamp' => self::$timestamp,
-				'log' => self::extract()
+				'log' => self::$errors
 			];
 
-			file_put_contents($log_file_path, json_encode($data) . "\n", FILE_APPEND | LOCK_EX);
+			file_put_contents($log_file, json_encode($data) . "\n", FILE_APPEND | LOCK_EX);
 		}
 
 		if (self::$count_error_terminate > 0) {

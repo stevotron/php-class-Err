@@ -70,6 +70,7 @@ It is possible to add extra data to the error logs for help when debugging. Here
 
 ```php
 <?php
+
 Err::addLogData([
   'organisation_id' => $_SESSION['organisation_id'],
   'user_id'         => $_SESSION['user_id']

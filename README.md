@@ -19,7 +19,7 @@ Err::initialise([
 
 ```
 
-If errors are recorded and need to be logged, they are JSON encoded and stored on an individual line in the relevant log file.
+If errors are recorded and need to be logged, they are encoded as a JSON string and stored on an individual line in the relevant log file.
 
 ##Error types
 
@@ -77,4 +77,4 @@ Err::addLogData([
 ]);
 ```
 
-The organisation ID and user ID will now be stored inthe log.
+The organisation ID and user ID will now be stored in the log.

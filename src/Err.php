@@ -51,6 +51,11 @@ class Err {
 	private static $log_file_terminate = 'terminate.txt';
 
 	/**
+	 * @var bool If shutdown procedure has run or not
+	 */
+	private static $shutdown_complete = false;
+
+	/**
 	 * @var false|string A string to echo when the script is terminated, otherwise the error log is dumped
 	 */
 	private static $termination_message = false;
@@ -277,6 +282,12 @@ class Err {
 	 */
 	public static function shutdownFinal()
 	{
+		if (self::$shutdown_complete) {
+			return;
+		}
+
+		self::$shutdown_complete = true;
+		
 		if (self::$count_error_terminate > 0 && self::$termination_message === false) {
 			echo '<hr>';
 			echo '<h1>Script Terminated by PHP Error</h1>';

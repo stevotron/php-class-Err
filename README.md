@@ -18,8 +18,6 @@ Create a directory for the log files and add two empty files called background.t
 Initialise Err as early as possible and tell it where the log directory is.
 
 ```php
-<?php
-
 include '/path/to/Err.php';
 
 Err::initialise([
@@ -45,7 +43,6 @@ Allowed values for *ignore* and *background* are `E_WARNING`, `E_NOTICE`, `E_COR
 Here is an example of initialisation including defining error types (this example sets the defult values).
 
 ```php
-
 include '/path/to/Err.php';
 
 Err::initialise([
@@ -65,7 +62,6 @@ By default, if the class encounters a *terminal* error it will dump the entire e
 Here is how to set the terminal message during initialisation.
 
 ```php
-
 include '/path/to/Err.php';
 
 Err::initialise([
@@ -81,7 +77,6 @@ The following example shows initialisation with all valid options being set with
 
 
 ```php
-
 Err::initialise([
 	'errors_background'   => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
 	'errors_ignore'       => E_NOTICE | E_USER_NOTICE | E_STRICT,
@@ -99,7 +94,6 @@ Err::initialise([
 During development it may be useful to view all error immediately after each request runs so that it is not necessary to check the logs. It is possible to extract all error data at any point. This will return the error data as an array and reset the class. For example,
 
 ```php
-
 $error_data = Err::extract();
 
 ```
@@ -129,7 +123,6 @@ Array (
 You may also add `true` as an argument like, 
 
 ```php
-
 $error_data = Err::extract(true);
 
 ```
@@ -154,7 +147,6 @@ Array (
 It is possible to add extra data to the error logs for help with debugging. Adding log data should be done after initialisation. Here's an example,
 
 ```php
-
 Err::addLogData([
   'organisation_id' => $_SESSION['organisation_id'],
   'user_id'         => $_SESSION['user_id']

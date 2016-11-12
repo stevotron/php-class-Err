@@ -68,7 +68,7 @@ Err::initialise([
 
 ##Logging extra data
 
-It is possible to add extra data to the error logs for help when debugging. Here's an example - assuming `Err::initialise()` has already been run
+It is possible to add extra data to the error logs for help with debugging. Adding log data should be done after initialisation. Here's an example,
 
 ```php
 <?php
@@ -79,7 +79,7 @@ Err::addLogData([
 ]);
 ```
 
-The organisation ID and user ID will now be stored in the log.
+The Organisation ID and User ID will now be stored in the log.
 
 ##All valid options during initialisation
 
@@ -96,6 +96,6 @@ Err::initialise([
 	'log_file_background' => 'background.txt',
 	'log_file_terminal'   => 'terminal.txt',
 	'terminal_message'    => false,
-	'timestamp'           => time();
+	'timestamp'           => time()
 ]);
 ```

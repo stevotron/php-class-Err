@@ -2,8 +2,16 @@
 
 /**
  * Class Err
+ * Built for PHP >= 5.4.0.
+ * Use in earlier versions will result in an undefined constant error.
  */
 class Err {
+
+	/**
+	 * @var integer Set on initialisation. A bitwise derived integer of errors
+	 * that may be set as ignore or background.
+	 */
+	private static $allowed_errors = false;
 
 	/**
 	 * @var integer Number of background errors
@@ -26,14 +34,16 @@ class Err {
 	private static $errors = [];
 
 	/**
-	 * @var integer A bitwise derived integer made with PHP Error Constants controlling which error codes to log silently
+	 * @var integer Set on initialisation. A bitwise derived integer made with
+	 * PHP Error Constants controlling which error codes to log silently.
 	 */
-	private static $errors_background = 0;
+	private static $errors_background = false;
 
 	/**
-	 * @var integer A bitwise derived integer made with PHP Error Constants controlling which error codes to ignore
+	 * @var integer Set on initialisation. A bitwise derived integer made with
+	 * PHP Error Constants controlling which error codes to ignore.
 	 */
-	private static $errors_ignore = 0;
+	private static $errors_ignore = false;
 
 	/**
 	 * @var array Extra data to save with log
@@ -56,9 +66,9 @@ class Err {
 	private static $log_file_terminal = 'terminal.txt';
 
 	/**
-	 * @var bool If shutdown (log/output errors) has happened
+	 * @var bool Set to true when performShutdownTasks() runs
 	 */
-	private static $shutdown_complete = false;
+	private static $shutdown_tasks_complete = false;
 
 	/**
 	 * @var false|string A string to echo when the script is terminated, otherwise the error log is dumped
@@ -75,6 +85,7 @@ class Err {
 	 * element called "data" which will contain the submitted details. Array must
 	 * be 1 dimensional, values are typecast as strings.
 	 * @param $data_array array Data to add to log
+	 * @throws Exception If $data_array is not an array
 	 */
 	public static function addLogData($data_array)
 	{
@@ -105,13 +116,14 @@ class Err {
 			'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)
 		];
 
+		// action depends on error type
 		if (self::$errors_ignore & $err_no) {
 			self::$error_count_ignore++;
 		} else if (self::$errors_background & $err_no) {
 			self::$error_count_background++;
 		} else {
 			self::$error_count_terminal++;
-			self::shutdownFinal();
+			self::performShutdownTasks();
 		}
 	}
 
@@ -122,6 +134,7 @@ class Err {
 	 */
 	public static function extract($with_counts = false)
 	{
+		// prepare return array
 		if ($with_counts) {
 			$data = [
 				'counts' => [
@@ -134,10 +147,13 @@ class Err {
 		} else {
 			$data = self::$errors;
 		}
+
+		// reset
 		self::$errors = [];
 		self::$error_count_background = 0;
 		self::$error_count_ignore = 0;
 		self::$error_count_terminal = 0;
+
 		return $data;
 	}
 
@@ -193,7 +209,7 @@ class Err {
 	 */
 	public static function initialise($parameters = null)
 	{
-		if (is_array($parameters)) {
+		if ($parameters !== null) {
 			self::setParametersWithArray($parameters);
 		}
 
@@ -202,17 +218,24 @@ class Err {
 			throw new Exception('Err class cannot write to log files or log files do not exist.');
 		}
 
+		// define errors that may be set as ignore or background
+		self::$allowed_errors = E_WARNING | E_NOTICE | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_USER_NOTICE | E_STRICT | E_RECOVERABLE_ERROR | E_DEPRECATED | E_USER_DEPRECATED;
+
 		// use defaults if parameters not set
 		if (self::$timestamp === '') {
 			self::$timestamp = time();
 		}
 
-		if (self::$errors_ignore === 0) {
-			self::$errors_ignore = E_NOTICE | E_USER_NOTICE;
+		if (self::$errors_ignore === false) {
+			self::$errors_ignore = E_NOTICE | E_USER_NOTICE | E_STRICT;
+		} else {
+			self::checkErrorsAreValid('ignore');
 		}
 
-		if (self::$errors_background === 0) {
+		if (self::$errors_background === false) {
 			self::$errors_background = E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED;
+		} else {
+			self::checkErrorsAreValid('background');
 		}
 
 		// do not display errors
@@ -220,99 +243,57 @@ class Err {
 
 		// register error handling functions
 		set_error_handler('Err::errorHandler');
-		register_shutdown_function('Err::shutdownCheckForFatal');
-		register_shutdown_function('Err::shutdownFinal');
-	}
-
-	public static function setErrorsBackground($errors)
-	{
-		self::$errors_background = $errors;
-	}
-
-	public static function setErrorsIgnore($errors)
-	{
-		self::$errors_ignore = $errors;
-	}
-
-	public static function setLogDirectory($path)
-	{
-		self::$log_directory = $path;
-	}
-
-	public static function setLogFileBackground($file_name)
-	{
-		self::$log_file_background = $file_name;
-	}
-
-	public static function setLogFileTerminal($file_name)
-	{
-		self::$log_file_terminal = $file_name;
-	}
-
-	public static function setTerminalMessage($terminal_message)
-	{
-		self::$terminal_message = $terminal_message;
+		register_shutdown_function('Err::shutdownFunction');
 	}
 
 	/**
-	 * Set class parameters using submitted array values
-	 * @param $parameters
+	 * Registered as shutdown function. Performs final checks before shutdown tasks are performed.
 	 */
-	public static function setParametersWithArray($parameters)
+	public static function shutdownFunction()
 	{
-		$can_set = [
-			'errors_background',
-			'errors_ignore',
-			'log_directory',
-			'log_file_background',
-			'log_file_terminal',
-			'terminal_message',
-			'timestamp'
-		];
-		foreach ($parameters as $name => $value) {
-			if (in_array($name, $can_set)) {
-				self::${$name} = $value;
-			}
-		}
-	}
+		// no need to run if shutdown tasks have already been completed
+		if (self::$shutdown_tasks_complete === true) return;
 
-	/**
-	 * Registered as a shutdown function. Checks the last error and passes its
-	 * details to be processed if needed.
-	 */
-	public static function shutdownCheckForFatal()
-	{
 		// The following are fatal errors which will not be processed by the function set in set_error_handler()
 		// They will need to be manually passed to errorHandler()
-		$core_fatal = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+		$core_fatal = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR;
 
 		// Get the last error
 		$error = error_get_last();
 
-		// If the last error has a match in $core_fatal, pass details to errorHandler
-		if ($error !== NULL && in_array($error['type'], $core_fatal, true)) {
+		// If the last error has a match in $core_fatal pass details to errorHandler
+		if ($error !== NULL && ($error['type'] & $core_fatal)) {
 			self::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
+		} else {
+			self::performShutdownTasks();
 		}
+
 	}
 
 	/**
-	 * Registered as shutdown function and called if a terminal error occurs.
-	 * Ensures that shutdownProcedure() (log or dump) is performed once.
+	 * Checks submitted error type contains valid errors
+	 * @param $error_type string "background" or "ignore"
+	 * @throws Exception if $error_type is not valid, or errors in submitted $error_type are not valid
 	 */
-	public static function shutdownFinal()
+	private static function checkErrorsAreValid($error_type)
 	{
-		if (self::$shutdown_complete === false) {
-			self::$shutdown_complete = true;
-			self::shutdownProcedure();
+		if (! property_exists('Err', "errors_$error_type")) {
+			throw new Exception('Invalid error type submitted');
+		}
+
+		if ((self::$allowed_errors & self::${"errors_$error_type"}) !== self::${"errors_$error_type"}) {
+			throw new Exception("Invalid errors submitted for error type $error_type");
 		}
 	}
 
 	/**
-	 * Perform final procedure. Actions depends on the type of errors occurred
+	 * Perform final tasks. Actions depends on the type of errors occurred
 	 * and terminal message value.
 	 */
-	private static function shutdownProcedure()
+	private static function performShutdownTasks()
 	{
+		self::$shutdown_tasks_complete = true;
+
 		if (self::$error_count_terminal > 0 && self::$terminal_message === false) {
 			echo '<hr>';
 			echo '<h1>Script Terminated by PHP Error</h1>';
@@ -335,6 +316,32 @@ class Err {
 		if (self::$error_count_terminal > 0) {
 			echo self::$terminal_message;
 			exit;
+		}
+	}
+
+	/**
+	 * Set class parameters using submitted array values
+	 * @param $parameters
+	 * @throws Exception if $parameters is not an array
+	 */
+	private static function setParametersWithArray($parameters)
+	{
+		if (!is_array($parameters)) {
+			throw new Exception('Parameters must be an array');
+		}
+
+		foreach ($parameters as $name => $value) {
+			if (in_array($name, [
+				'errors_background',
+				'errors_ignore',
+				'log_directory',
+				'log_file_background',
+				'log_file_terminal',
+				'terminal_message',
+				'timestamp'
+			])) {
+				self::${$name} = $value;
+			}
 		}
 	}
 }

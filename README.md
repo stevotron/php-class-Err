@@ -19,7 +19,7 @@ Err::initialise([
 
 ```
 
-If errors are recorded and need to be logged, they are encoded as a JSON string and stored on an individual line in the relevant log file.
+If errors are recorded and need to be logged, the details are encoded as a JSON string and stored on an individual line in the relevant log file.
 
 ##Error types
 

@@ -23,13 +23,13 @@ If errors are recorded and need to be logged, the details are encoded as a JSON 
 
 ##Error types
 
-The class categorises errors as three types, *ignore*, *background* and *terminal*. It is set up with default values which can be overwritten if needed. Only *ignore* and *background* values are set, anything else is considered *terminal*.
+The class categorises errors as three types: *ignore*, *background* and *terminal*. It is set up with default values which can be overwritten if needed. Only *ignore* and *background* values are set, anything else is considered *terminal*.
 
 If only *ignore* errors occur during run time, nothing is logged and the script runs as intended.
 
 If any *background* errors occur (regardless of *ignore* errors or not), then *all* errors will be logged in the defined background file and the script runs as intended.
 
-If any errors occur that are not listed in *ignore* or *background* then the script will terminate. Errors will be dumped to screen, or logged in the defined terminal file depending on the property value for $terminal_message.
+If any errors occur that are not listed in *ignore* or *background* then the script will terminate. Errors will be dumped to screen or logged in the defined terminal file - see [Terminal message](#terminal-message).
 
 Allowed values for *ignore* and *background* are `E_WARNING`, `E_NOTICE`, `E_CORE_WARNING`, `E_COMPILE_WARNING`, `E_USER_WARNING`, `E_USER_NOTICE`, `E_STRICT`, `E_RECOVERABLE_ERROR`, `E_DEPRECATED` and `E_USER_DEPRECATED`. Any other constants submitted will result in an Exception being thrown.
 
@@ -47,6 +47,8 @@ Err::initialise([
 ]);
 
 ```
+
+If an error code is set for *ignore* and *background*, the error code will be categorised as *ignore*.
 
 ##Terminal message
 

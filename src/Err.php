@@ -289,9 +289,8 @@ class Err {
 		// Get the last error
 		$error = error_get_last();
 
-		// If the last error has a match in $core_fatal, record that the script has terminated and pass details to be processed
+		// If the last error has a match in $core_fatal, pass details to errorHandler
 		if ($error !== NULL && in_array($error['type'], $core_fatal, true)) {
-			self::$error_count_terminal++;
 			self::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
 		}
 	}

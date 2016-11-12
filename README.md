@@ -154,4 +154,4 @@ Err::addLogData([
 
 ```
 
-The Organisation ID and User ID will now be stored in the log.
+The Organisation ID and User ID will now be stored in the log. All submitted array values are typecast as strings.

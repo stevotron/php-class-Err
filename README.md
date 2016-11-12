@@ -66,21 +66,6 @@ Err::initialise([
 
 ```
 
-##Logging extra data
-
-It is possible to add extra data to the error logs for help with debugging. Adding log data should be done after initialisation. Here's an example,
-
-```php
-<?php
-
-Err::addLogData([
-  'organisation_id' => $_SESSION['organisation_id'],
-  'user_id'         => $_SESSION['user_id']
-]);
-```
-
-The Organisation ID and User ID will now be stored in the log.
-
 ##All valid options during initialisation
 
 The following example shows initialisation with all valid options being set with their default values. The only required option is `log_directory`. The class will function with all other default values.
@@ -99,3 +84,18 @@ Err::initialise([
 	'timestamp'           => time()
 ]);
 ```
+
+##Logging extra data
+
+It is possible to add extra data to the error logs for help with debugging. Adding log data should be done after initialisation. Here's an example,
+
+```php
+<?php
+
+Err::addLogData([
+  'organisation_id' => $_SESSION['organisation_id'],
+  'user_id'         => $_SESSION['user_id']
+]);
+```
+
+The Organisation ID and User ID will now be stored in the log.

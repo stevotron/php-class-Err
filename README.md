@@ -83,7 +83,7 @@ The Organisation ID and User ID will now be stored in the log.
 
 ##All valid options during initialisation
 
-The following example shows initialistion with all valid options being set with their default values. The only required option is `log_directory`. The class will function with all other default values.
+The following example shows initialisation with all valid options being set with their default values. The only required option is `log_directory`. The class will function with all other default values.
 
 
 ```php

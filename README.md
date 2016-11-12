@@ -27,9 +27,11 @@ The class categorises errors as three types, *ignore*, *background* and *termina
 
 If only *ignore* errors occur during run time, nothing is logged and the script runs as intended.
 
-If any *background* errors occur on top of any *ignore* errors, then all errors will be logged in the defined background file and the script runs as intended.
+If any *background* errors occur (regardless of *ignore* errors or not), then *all* errors will be logged in the defined background file and the script runs as intended.
 
 If any errors occur that are not listed in *ignore* or *background* then the script will terminate. Errors will be dumped to screen, or logged in the defined terminal file depending on the property value for $terminal_message.
+
+Allowed values for *ignore* and *background* are `E_WARNING`, `E_NOTICE`, `E_CORE_WARNING`, `E_COMPILE_WARNING`, `E_USER_WARNING`, `E_USER_NOTICE`, `E_STRICT`, `E_RECOVERABLE_ERROR`, `E_DEPRECATED` and `E_USER_DEPRECATED`. Any other constants submitted will result in an Exception being thrown.
 
 Here is an example of initialisation including defining error types (this example sets the defult values).
 
@@ -41,7 +43,7 @@ include '/path/to/Err.php';
 Err::initialise([
   'log_directory' => '/path/to/log/dir',
   'errors_background' => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
-  'errors_ignore' => E_NOTICE | E_USER_NOTICE
+  'errors_ignore' => E_NOTICE | E_USER_NOTICE | E_STRICT
 ]);
 
 ```
@@ -78,3 +80,22 @@ Err::addLogData([
 ```
 
 The organisation ID and user ID will now be stored in the log.
+
+##All valid options during initialisation
+
+The following example shows initialistion with all valid options being set with their default values. The only required option is `log_directory`. The class will function with all other default values.
+
+
+```php
+<?php
+
+Err::initialise([
+	'errors_background'   => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
+	'errors_ignore'       => E_NOTICE | E_USER_NOTICE | E_STRICT,
+	'log_directory'       => '',
+	'log_file_background' => 'background.txt',
+	'log_file_terminal'   => 'terminal.txt',
+	'terminal_message'    => false,
+	'timestamp'           => time();
+]);
+```

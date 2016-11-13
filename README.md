@@ -91,7 +91,7 @@ Err::initialise([
 
 ##Extracting error data before shutdown
 
-During development it may be useful to view all error immediately after each request runs so that it is not necessary to check the logs. It is possible to extract all error data at any point. This will return the error data as an array and reset the class. For example,
+During development it may be useful to view errors immediately after each request runs so that it is not necessary to check the logs. It is possible to extract all error data at any point. This will return the error data as an array, all data that is returned will not be logged. For example,
 
 ```php
 $error_data = Err::extract();
@@ -120,14 +120,14 @@ Array (
 )
 ```
 
-You may also add `true` as an argument like, 
+You may also add `true` as an argument, 
 
 ```php
 $error_data = Err::extract(true);
 
 ```
 
-to get,
+to get a little more detail,
 
 ```
 Array (

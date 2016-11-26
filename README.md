@@ -75,24 +75,42 @@ Err::initialise([
 
 ```
 
-###Terminal function
+###Terminal method
 
-If the terminal message parameter is not set, a terminal function parameter can be set. The function does not have to be loaded at the time of initialisation, a second parameter can be set with the function's file path. If the terminal function, or file path does not exist, the error data will be logged and a terminal message will be displayed describing the error.
+The class can be extended with a method named `terminalAction` (this method already exists in the Err class but does nothing). If the terminal message parameter is not set, then this method will be called after a terminal error.
 
-The terminal function will be passed an array as the first argument. This array will be as returned by `Err::extract(true)`, see [extracting error data before shutdown](#extracting-error-data-before-shutdown).
-
-Here is how to set the terminal function, and optional file path, during initialisation.
+For example, 
 
 ```php
 include '/path/to/Err.php';
 
-Err::initialise([
-  'log_directory'               => '/path/to/log/dir',
-  'terminal_function'           => 'terminal_function',
-  'terminal_function_file_path' => '/path/to/terminal-function.php'  
+class ErrExtended extends Err {
+
+  protected static function terminalAction()
+  {
+    list($counts, $errors) = parent::extract(true);
+
+    echo '<hr>';
+    echo '<h1>PHP error terminated script</h1>';
+    echo '<hr>';
+    echo '<pre>';
+    print_r($counts);
+    echo '</pre>';
+    echo '<hr>';
+    echo '<pre>';
+    print_r($errors);
+    echo '</pre>';
+  }
+}
+
+// now initilisation needs to happen with the extended class
+ErrExtended::initialise([
+  'log_directory'    => '/path/to/log/dir'
 ]);
 
 ```
+
+With the above example, in the event of a terminal error, the error counts and error data will be echo'd. Nothing will be logged because `extract()` has been called which removes all error data from the class.
 
 ##All valid options during initialisation
 
@@ -101,15 +119,13 @@ The following example shows initialisation with all valid options being set with
 
 ```php
 Err::initialise([
-	'errors_background'           => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
-	'errors_ignore'               => E_NOTICE | E_USER_NOTICE | E_STRICT,
-	'log_directory'               => '',
-	'log_file_background'         => 'background.txt',
-	'log_file_terminal'           => 'terminal.txt',
-	'terminal_function'           => false,
-	'terminal_function_file_path' => false,
-	'terminal_message'            => false,
-	'timestamp'                   => time()
+  'errors_background'   => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
+  'errors_ignore'       => E_NOTICE | E_USER_NOTICE | E_STRICT,
+  'log_directory'       => '',
+  'log_file_background' => 'background.txt',
+  'log_file_terminal'   => 'terminal.txt',
+  'terminal_message'    => false,
+  'timestamp'           => time()
 ]);
 
 ```

@@ -79,7 +79,7 @@ Err::initialise([
 
 If the terminal message parameter is not set, a terminal function parameter can be set. The function does not have to be loaded at the time of initialisation, a second parameter can be set with the function's file path. If the terminal function, or file path does not exist, the error data will be logged and a terminal message will be displayed describing the error.
 
-The terminal function will be passed an array as the first argument. This array will be as returned by `Err::extract(true)`, see * [extracting error data before shutdown](#extracting-error-data-before-shutdown).
+The terminal function will be passed an array as the first argument. This array will be as returned by `Err::extract(true)`, see [extracting error data before shutdown](#extracting-error-data-before-shutdown).
 
 Here is how to set the terminal function, and optional file path, during initialisation.
 

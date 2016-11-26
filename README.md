@@ -46,9 +46,9 @@ Here is an example of initialisation including defining error types (this exampl
 include '/path/to/Err.php';
 
 Err::initialise([
-  'log_directory' => '/path/to/log/dir',
+  'log_directory'     => '/path/to/log/dir',
   'errors_background' => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
-  'errors_ignore' => E_NOTICE | E_USER_NOTICE | E_STRICT
+  'errors_ignore'     => E_NOTICE | E_USER_NOTICE | E_STRICT
 ]);
 
 ```
@@ -69,7 +69,7 @@ Here is how to set the terminal message during initialisation.
 include '/path/to/Err.php';
 
 Err::initialise([
-  'log_directory' => '/path/to/log/dir',
+  'log_directory'    => '/path/to/log/dir',
   'terminal_message' => '<h1>Sorry</h1><hr><p>Something went wrong. We have logged the error.</p>'
 ]);
 
@@ -87,8 +87,8 @@ Here is how to set the terminal function, and optional file path, during initial
 include '/path/to/Err.php';
 
 Err::initialise([
-  'log_directory' => '/path/to/log/dir',
-  'terminal_function' => 'terminal_function',
+  'log_directory'               => '/path/to/log/dir',
+  'terminal_function'           => 'terminal_function',
   'terminal_function_file_path' => '/path/to/terminal-function.php'  
 ]);
 
@@ -101,7 +101,7 @@ The following example shows initialisation with all valid options being set with
 
 ```php
 Err::initialise([
-	'errors_background'   => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
+	'errors_background'           => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
 	'errors_ignore'               => E_NOTICE | E_USER_NOTICE | E_STRICT,
 	'log_directory'               => '',
 	'log_file_background'         => 'background.txt',

@@ -59,7 +59,7 @@ If an error code is set for *ignore* and *background*, the error code will be ca
 
 By default, if the class encounters a *terminal* error it will dump the entire error log to screen. There are other ways to handle a terminal error.
 
-####Terminal message
+###Terminal message
 
 A string can be echo'd instead, and the error will be logged to the defined terminal file. 
 
@@ -75,7 +75,7 @@ Err::initialise([
 
 ```
 
-####Terminal function
+###Terminal function
 
 If the terminal message parameter is not set, a terminal function parameter can be set. The function does not have to be loaded at the time of initialisation, a second parameter can be set with the function's file path. If the terminal function, or file path does not exist, the error data will be logged and a terminal message will be displayed describing the error.
 
@@ -102,12 +102,14 @@ The following example shows initialisation with all valid options being set with
 ```php
 Err::initialise([
 	'errors_background'   => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
-	'errors_ignore'       => E_NOTICE | E_USER_NOTICE | E_STRICT,
-	'log_directory'       => '',
-	'log_file_background' => 'background.txt',
-	'log_file_terminal'   => 'terminal.txt',
-	'terminal_message'    => false,
-	'timestamp'           => time()
+	'errors_ignore'               => E_NOTICE | E_USER_NOTICE | E_STRICT,
+	'log_directory'               => '',
+	'log_file_background'         => 'background.txt',
+	'log_file_terminal'           => 'terminal.txt',
+	'terminal_function'           => false,
+	'terminal_function_file_path' => false,
+	'terminal_message'            => false,
+	'timestamp'                   => time()
 ]);
 
 ```

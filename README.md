@@ -69,10 +69,19 @@ ErrExtended extends Err {
    */
   protected static $class_name = 'ErrExtended';
 
+  /**
+   * Method will run in the event of a terminal action when in development mode
+   */
   protected static function terminalActionDevelopment()
   {
+    // Because the data is being extracted, there will be nothing to log.
+    // If extract() is not used, the errors will be logged.
     $data = parent::extract(true);
 
+    // Any extra log data is also available in this class
+    $extra_log_data = parent::$extra_log_data;
+
+    // A simple dump of the data
     echo '<hr>';
     echo '<h1>PHP error terminated script</h1>';
     echo '<hr>';
@@ -85,6 +94,9 @@ ErrExtended extends Err {
     echo '</pre>';
   }
 
+  /**
+   * Method will run in the event of a terminal action when in production mode
+   */
   protected static function terminalActionProduction()
   {
     echo '<h1>Sorry, an application error occurred</h1><hr><p>Details have been logged</p>';

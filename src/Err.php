@@ -163,6 +163,20 @@ class Err {
 	}
 
 	/**
+	 * Returns the last error details if they exist
+	 * @return null|array
+	 */
+	public static function getLast()
+	{
+		if (self::$errors) {
+			$index = count(self::$errors) - 1;
+			return self::$errors[$index];
+		}
+
+		return null;
+	}
+
+	/**
 	 * Get an error name from its integer value
 	 * @param $error_code int
 	 * @return string The name of the error code submitted

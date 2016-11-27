@@ -117,6 +117,8 @@ ErrExtended extends Err {
 
 ```
 
+Keep the custom methods as simple as possible, errors will not be logged or displayed. It may be helpful to begin each method with `error_reporting(E_ALL);` for debugging during development.
+
 Once the extended class has been written, it can be used just like the original class. 
 
 ```php
@@ -129,44 +131,7 @@ ErrExtended::initialise([
 
 ```
 
-Keep the custom methods as simple as possible, errors will not be logged or displayed. It may be helpful to begin each method with `error_reporting(E_ALL);` for debugging during development.
-
-###Terminal method
-
-The class can be extended with a method named `terminalAction` (this method already exists in the Err class but does nothing). If the terminal message parameter is not set, then this method will be called after a terminal error.
-
-For example, 
-
-```php
-include '/path/to/Err.php';
-
-class ErrExtended extends Err {
-
-  protected static function terminalAction()
-  {
-    list($counts, $errors) = parent::extract(true);
-
-    echo '<hr>';
-    echo '<h1>PHP error terminated script</h1>';
-    echo '<hr>';
-    echo '<pre>';
-    print_r($counts);
-    echo '</pre>';
-    echo '<hr>';
-    echo '<pre>';
-    print_r($errors);
-    echo '</pre>';
-  }
-}
-
-// now initilisation needs to happen with the extended class
-ErrExtended::initialise([
-  'log_directory'    => '/path/to/log/dir'
-]);
-
-```
-
-With the above example, in the event of a terminal error, the error counts and error data will be echo'd. Nothing will be logged because `extract()` has been called which removes all error data from the class.
+It is only initialisation that needs to be done with the extended class. All other actions can be done with the original class.
 
 ##All valid options during initialisation
 

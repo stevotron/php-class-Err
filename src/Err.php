@@ -14,6 +14,16 @@ class Err {
 	private static $allowed_errors = false;
 
 	/**
+	 * @var string The name of the class to use for error handling (maybe an extension of this class)
+	 */
+	private static $class_name = 'Err';
+
+	/**
+	 * @var bool Determines if application is in development or production mode
+	 */
+	private static $development = true;
+
+	/**
 	 * @var integer Number of background errors
 	 */
 	private static $error_count_background = 0;
@@ -48,7 +58,7 @@ class Err {
 	/**
 	 * @var array Extra data to save with log
 	 */
-	private static $extra_log_data = [];
+	protected static $extra_log_data = [];
 
 	/**
 	 * @var string The path to log directory
@@ -69,11 +79,6 @@ class Err {
 	 * @var bool Set to true when performShutdownTasks() runs
 	 */
 	private static $shutdown_tasks_complete = false;
-
-	/**
-	 * @var false|string A string to echo when the script is terminated, otherwise the error log is dumped
-	 */
-	private static $terminal_message = false;
 
 	/**
 	 * @var string Timestamp to use in log file with logged errors
@@ -205,7 +210,7 @@ class Err {
 	/**
 	 * Initialise error logging
 	 * @param null|array $parameters Array of parameters as expected by setParametersWithArray()
-	 * @throws Exception if log files do not exist or cannot be written to
+	 * @throws Exception If log files do not exist or cannot be written to
 	 */
 	public static function initialise($parameters = null)
 	{
@@ -242,8 +247,8 @@ class Err {
 		error_reporting(0);
 
 		// register error handling functions
-		set_error_handler('Err::errorHandler');
-		register_shutdown_function('Err::shutdownFunction');
+		set_error_handler(static::$class_name . '::errorHandler');
+		register_shutdown_function(static::$class_name . '::shutdownFunction');
 	}
 
 	/**
@@ -271,6 +276,33 @@ class Err {
 	}
 
 	/**
+	 * Called when a terminal error occurs and development parameter is true
+	 */
+	private static function terminalActionDevelopment()
+	{
+		$data = self::extract(true);
+
+		echo '<hr>';
+		echo '<h1>PHP error terminated script</h1>';
+		echo '<hr>';
+		echo '<pre>';
+		print_r($data['counts']);
+		echo '</pre>';
+		echo '<hr>';
+		echo '<pre>';
+		print_r($data['errors']);
+		echo '</pre>';
+	}
+
+	/**
+	 * Called when a terminal error occurs and development parameter is false
+	 */
+	private static function terminalActionProduction()
+	{
+		echo '<h1>Sorry, an error occurred</h1><hr><p>Details have been logged</p>';
+	}
+
+	/**
 	 * Checks submitted error type contains valid errors
 	 * @param $error_type string "background" or "ignore"
 	 * @throws Exception if $error_type is not valid, or errors in submitted $error_type are not valid
@@ -287,22 +319,10 @@ class Err {
 	}
 
 	/**
-	 * Perform final tasks. Actions depends on the type of errors occurred
-	 * and terminal message value.
+	 * Save any errors to relevant log file
 	 */
-	private static function performShutdownTasks()
+	private static function logErrors()
 	{
-		self::$shutdown_tasks_complete = true;
-
-		if (self::$error_count_terminal > 0 && self::$terminal_message === false) {
-			echo '<hr>';
-			echo '<h1>Script Terminated by PHP Error</h1>';
-			echo '<hr>';
-			echo '<pre>';
-			print_r(self::$errors);
-			exit;
-		}
-
 		if (self::$error_count_terminal > 0 || self::$error_count_background > 0) {
 			$log_file = self::$log_directory . '/' . (self::$error_count_terminal > 0 ? self::$log_file_terminal : self::$log_file_background);
 			$data['timestamp'] = self::$timestamp;
@@ -312,10 +332,27 @@ class Err {
 			$data['log'] = self::$errors;
 			file_put_contents($log_file, json_encode($data) . "\n", FILE_APPEND | LOCK_EX);
 		}
+	}
 
-		if (self::$error_count_terminal > 0) {
-			echo self::$terminal_message;
-			exit;
+	/**
+	 * Perform final tasks. Actions depends on the type of errors
+	 * occurred and parameter values.
+	 */
+	private static function performShutdownTasks()
+	{
+		self::$shutdown_tasks_complete = true;
+
+		if (self::$error_count_terminal === 0) {
+			self::logErrors();
+			return;
+		}
+
+		if (self::$development === true) {
+			static::terminalActionDevelopment();
+			self::logErrors();
+		} else {
+			self::logErrors();
+			static::terminalActionProduction();
 		}
 	}
 
@@ -332,12 +369,12 @@ class Err {
 
 		foreach ($parameters as $name => $value) {
 			if (in_array($name, [
+				'development',
 				'errors_background',
 				'errors_ignore',
 				'log_directory',
 				'log_file_background',
 				'log_file_terminal',
-				'terminal_message',
 				'timestamp'
 			])) {
 				self::${$name} = $value;

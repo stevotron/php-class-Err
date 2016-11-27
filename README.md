@@ -58,7 +58,7 @@ If an error code is set for *ignore* and *background*, the error code will be ca
 
 ##Decoding errors
 
-The class comes with an error decoder. Once initialised, it can be used like,
+The class includes an error decoding method. Once initialised, it can be used like,
 
 ```php
 $error_name = Err::getName($error_code);

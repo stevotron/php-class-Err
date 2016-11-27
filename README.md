@@ -37,7 +37,7 @@ If only *ignore* errors occur during run time, nothing is logged and the script 
 
 If any *background* errors occur (regardless of *ignore* errors or not), then *all* errors will be logged in the defined background file and the script runs as intended.
 
-If any errors occur that are not listed in *ignore* or *background* then the script will terminate. Errors will be dumped to screen or logged in the defined terminal file - see [Terminal message](#terminal-message).
+If any errors occur that are not listed in *ignore* or *background* then the script will terminate. Errors will be dumped to screen or logged in the defined terminal file depending on mode. It is also possible to [create terminal actions](#custom-terminal-actions)
 
 Allowed values for *ignore* and *background* are `E_WARNING`, `E_NOTICE`, `E_CORE_WARNING`, `E_COMPILE_WARNING`, `E_USER_WARNING`, `E_USER_NOTICE`, `E_STRICT`, `E_RECOVERABLE_ERROR`, `E_DEPRECATED` and `E_USER_DEPRECATED`. Any other constants submitted will result in an Exception being thrown.
 

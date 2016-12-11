@@ -8,19 +8,29 @@
 class Err {
 
 	/**
-	 * Error handling mode ID for development.
+	 * Termination mode ID for development.
 	 */
 	const MODE_DEVELOPMENT = 0;
 
 	/**
-	 * Error handling mode ID for production.
+	 * Termination mode ID for production.
 	 */
 	const MODE_PRODUCTION = 1;
 
 	/**
-	 * Error handling mode ID for silent.
+	 * Termination mode ID for silent.
 	 */
 	const MODE_SILENT = 2;
+
+	/**
+	 * Error type ID for error.
+	 */
+	const TYPE_ERROR = 0;
+
+	/**
+	 * Error type ID for exception.
+	 */
+	const TYPE_EXCEPTION = 1;
 
 	/**
 	 * @var integer Set on initialisation. A bitwise derived integer of errors
@@ -32,11 +42,6 @@ class Err {
 	 * @var string The name of the class to use for error handling (maybe an extension of this class)
 	 */
 	private static $class_name = 'Err';
-
-	/**
-	 * @var bool Determines if application is in development or production mode
-	 */
-	private static $development_mode = self::MODE_DEVELOPMENT;
 
 	/**
 	 * @var integer Number of background errors
@@ -96,6 +101,11 @@ class Err {
 	private static $shutdown_tasks_complete = false;
 
 	/**
+	 * @var int Determines action for terminal errors
+	 */
+	private static $termination_mode = self::MODE_DEVELOPMENT;
+
+	/**
 	 * @var string Timestamp to use in log file with logged errors
 	 */
 	private static $timestamp = '';
@@ -129,7 +139,8 @@ class Err {
 	{
 		// store error details
 		self::$errors[] = [
-			'error'     => $err_no,
+			'type'      => self::TYPE_ERROR,
+			'code'      => $err_no,
 			'message'   => $err_str,
 			'file'      => $err_file,
 			'line'      => $err_line,
@@ -145,6 +156,25 @@ class Err {
 			self::$error_count_terminal++;
 			self::performShutdownTasks();
 		}
+	}
+
+	/**
+	 * Handles an Exception.
+	 * @param Exception $e
+	 */
+	public static function exceptionHandler(Exception $e)
+	{
+		self::$errors[] = [
+			'type'      => self::TYPE_EXCEPTION,
+			'code'      => $e->getCode(),
+			'message'   => $e->getMessage(),
+			'file'      => $e->getFile(),
+			'line'      => $e->getLine(),
+			'backtrace' => $e->getTrace()
+		];
+
+		self::$error_count_terminal++;
+		self::performShutdownTasks();
 	}
 
 	/**
@@ -189,6 +219,23 @@ class Err {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Get an error type from its integer value
+	 * @param $error_type int
+	 * @return string The name of the error type submitted
+	 */
+	public static function getType($error_type)
+	{
+		switch ($error_type) {
+			case self::TYPE_ERROR: // 0
+				return 'Error';
+			case self::TYPE_EXCEPTION: // 1
+				return 'Exception';
+			default:
+				return 'Unknown error type';
+		}
 	}
 
 	/**
@@ -237,24 +284,6 @@ class Err {
 	}
 
 	/**
-	 * Handles an Exception.
-	 * @param Exception $e
-	 */
-	public static function handleException(Exception $e)
-	{
-		self::$errors[] = [
-			'error'     => 0,
-			'message'   => '[' . $e->getCode() . '] ' . $e->getMessage(),
-			'file'      => $e->getFile(),
-			'line'      => $e->getLine(),
-			'backtrace' => $e->getTrace()
-		];
-
-		self::$error_count_terminal++;
-		self::performShutdownTasks();
-	}
-
-	/**
 	 * Initialise error logging
 	 * @param null|array $parameters Array of parameters as expected by setParametersWithArray()
 	 * @throws Exception If log files do not exist or cannot be written to
@@ -299,17 +328,17 @@ class Err {
 	}
 
 	/**
-	 * Sets development mode.
+	 * Sets termination mode.
 	 * @param $input
 	 * @throws Exception if $input is not valid
 	 */
-	public static function setDevelopmentMode($input)
+	public static function setTerminationMode($input)
 	{
 		if (!in_array($input, [self::MODE_DEVELOPMENT, self::MODE_PRODUCTION, self::MODE_SILENT], true)) {
 			throw new Exception('Invalid mode ID submitted');
 		}
 
-		self::$development_mode = $input;
+		self::$termination_mode = $input;
 	}
 
 	/**
@@ -344,7 +373,7 @@ class Err {
 		$data = self::extract(true);
 
 		echo '<hr>';
-		echo '<h1>PHP error terminated script</h1>';
+		echo '<h1>PHP script terminated</h1>';
 		echo '<hr>';
 		echo '<pre>';
 		print_r($data['counts']);
@@ -403,15 +432,16 @@ class Err {
 	{
 		self::$shutdown_tasks_complete = true;
 
-		if (self::$error_count_terminal === 0 || self::$development_mode === self::MODE_SILENT) {
+		if (self::$error_count_terminal === 0 || self::$termination_mode === self::MODE_SILENT) {
 			self::logErrors();
-		} else if (self::$development_mode === self::MODE_DEVELOPMENT) {
+		} else if (self::$termination_mode === self::MODE_DEVELOPMENT) {
 			static::terminalActionDevelopment();
 			self::logErrors();
-		} else if (self::$development_mode === self::MODE_PRODUCTION) {
+		} else if (self::$termination_mode === self::MODE_PRODUCTION) {
 			self::logErrors();
 			static::terminalActionProduction();
 		}
+		exit;
 	}
 
 	/**
@@ -427,12 +457,12 @@ class Err {
 
 		foreach ($parameters as $name => $value) {
 			if (in_array($name, [
-				'development',
 				'errors_background',
 				'errors_ignore',
 				'log_directory',
 				'log_file_background',
 				'log_file_terminal',
+				'termination_mode',
 				'timestamp'
 			])) {
 				self::${$name} = $value;

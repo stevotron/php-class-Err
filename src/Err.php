@@ -8,6 +8,21 @@
 class Err {
 
 	/**
+	 * Error handling mode ID for development.
+	 */
+	const MODE_DEVELOPMENT = 0;
+
+	/**
+	 * Error handling mode ID for production.
+	 */
+	const MODE_PRODUCTION = 1;
+
+	/**
+	 * Error handling mode ID for silent.
+	 */
+	const MODE_SILENT = 2;
+
+	/**
 	 * @var integer Set on initialisation. A bitwise derived integer of errors
 	 * that may be set as ignore or background.
 	 */
@@ -21,7 +36,7 @@ class Err {
 	/**
 	 * @var bool Determines if application is in development or production mode
 	 */
-	private static $development = true;
+	private static $development_mode = self::MODE_DEVELOPMENT;
 
 	/**
 	 * @var integer Number of background errors
@@ -222,6 +237,24 @@ class Err {
 	}
 
 	/**
+	 * Handles an Exception.
+	 * @param Exception $e
+	 */
+	public static function handleException(Exception $e)
+	{
+		self::$errors[] = [
+			'error'     => 0,
+			'message'   => '[' . $e->getCode() . '] ' . $e->getMessage(),
+			'file'      => $e->getFile(),
+			'line'      => $e->getLine(),
+			'backtrace' => $e->getTrace()
+		];
+
+		self::$error_count_terminal++;
+		self::performShutdownTasks();
+	}
+
+	/**
 	 * Initialise error logging
 	 * @param null|array $parameters Array of parameters as expected by setParametersWithArray()
 	 * @throws Exception If log files do not exist or cannot be written to
@@ -263,6 +296,20 @@ class Err {
 		// register error handling functions
 		set_error_handler(static::$class_name . '::errorHandler');
 		register_shutdown_function(static::$class_name . '::shutdownFunction');
+	}
+
+	/**
+	 * Sets development mode.
+	 * @param $input
+	 * @throws Exception if $input is not valid
+	 */
+	public static function setDevelopmentMode($input)
+	{
+		if (!in_array($input, [self::MODE_DEVELOPMENT, self::MODE_PRODUCTION, self::MODE_SILENT], true)) {
+			throw new Exception('Invalid mode ID submitted');
+		}
+
+		self::$development_mode = $input;
 	}
 
 	/**
@@ -356,15 +403,12 @@ class Err {
 	{
 		self::$shutdown_tasks_complete = true;
 
-		if (self::$error_count_terminal === 0) {
+		if (self::$error_count_terminal === 0 || self::$development_mode === self::MODE_SILENT) {
 			self::logErrors();
-			return;
-		}
-
-		if (self::$development === true) {
+		} else if (self::$development_mode === self::MODE_DEVELOPMENT) {
 			static::terminalActionDevelopment();
 			self::logErrors();
-		} else {
+		} else if (self::$development_mode === self::MODE_PRODUCTION) {
 			self::logErrors();
 			static::terminalActionProduction();
 		}

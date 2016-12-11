@@ -69,9 +69,9 @@ For example, if the error code was `4` then `E_PARSE` would be returned.
 
 ##Custom terminal actions
 
-The class will perform one of two actions in the event of a terminal error. If in development mode (default setting) it will run a private method called `terminalActionDevelopment()`. If in production mode (set during initilisation ([see all initilisation options](#all-valid-options-during-initialisation)) then it will run a private method called `terminalActionProduction()`.
+The class will perform one of three actions in the event of a terminal error. This is determinined by the termination mode. If in development mode (default setting) it will run a private method called `terminalActionDevelopment()`. If in production mode then it will run a private method called `terminalActionProduction()`. If in silent mode then nothing will be output but errors will be logged. Set termination mode during initialisation, ([see all initilisation options](#all-valid-options-during-initialisation)).
 
-These methods can be customised by extending the class, including updating the property `$class_name`. The following is an example,
+The terminal methods can be customised by extending the class, including updating the property `$class_name`. The following is an example,
 
 ```php
 ErrExtended extends Err {
@@ -140,7 +140,7 @@ The following example shows initialisation with all valid options being set with
 
 ```php
 Err::initialise([
-  'development'         => true,
+  'termination_mode'    => self::MODE_DEVELOPMENT,
   'errors_background'   => E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED,
   'errors_ignore'       => E_NOTICE | E_USER_NOTICE | E_STRICT,
   'log_directory'       => '',

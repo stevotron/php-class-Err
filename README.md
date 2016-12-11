@@ -69,7 +69,7 @@ For example, if the error code was `4` then `E_PARSE` would be returned.
 
 ##Custom terminal actions
 
-The class will perform one of three actions in the event of a terminal error. This is determinined by the termination mode. If in development mode (default setting) it will run a private method called `terminalActionDevelopment()`. If in production mode then it will run a private method called `terminalActionProduction()`. If in silent mode then nothing will be output but errors will be logged. Set termination mode during initialisation, ([see all initilisation options](#all-valid-options-during-initialisation)).
+The class will perform one of three actions in the event of a terminal error. This is determinined by the termination mode. If in development mode (default setting) it will run a private method called `terminalActionDevelopment()`. If in production mode then it will run a private method called `terminalActionProduction()`. If in silent mode then nothing will be output but errors will be logged. Set termination mode during initialisation, [see all initilisation options](#all-valid-options-during-initialisation).
 
 The terminal methods can be customised by extending the class, including updating the property `$class_name`. The following is an example,
 

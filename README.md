@@ -148,8 +148,8 @@ Err::initialise([
   'log_data' => null, // can be an array of extra data, may also be set later using Err::addLogData()
   'log_directory' => '/path/to/log/dir',
   'log_file' => 'errors.txt',
-  'terminal_action_development' => null,
-  'terminal_action_production' => null,
+  'terminal_action_development' => null, // if null, class default action will be used
+  'terminal_action_production' => null, // if null, class default action will be used
   'termination_mode' => Err::MODE_DEVELOPMENT,
   'timestamp' => date('r')
 ]);

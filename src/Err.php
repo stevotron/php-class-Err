@@ -228,6 +228,15 @@ class Err {
 	}
 
 	/**
+	 * Returns extra log data
+	 * @return null|array
+	 */
+	public static function getLogData()
+	{
+		return self::$extra_log_data;
+	}
+
+	/**
 	 * Gets an error name from its integer value
 	 * @param $error_code int
 	 * @return string The name of the error code submitted

@@ -171,7 +171,8 @@ An example dump of `$error_data` is,
 ```
 Array (
 	[0] => Array (
-		[error] => 8
+		[type] => 0
+		[code] => 8
 		[message] => Undefined index: foo
 		[file] => /var/www/html/example.php
 		[line] => 21

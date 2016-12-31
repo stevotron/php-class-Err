@@ -213,7 +213,7 @@ Array (
 
 ##Logging extra data
 
-It is possible to add extra data to the error logs for help with debugging. Adding log data should be done after initialisation. Here's an example,
+It is possible to add extra data to the error logs for help with debugging. Extra log data can be added during initialisation or later on. Here's an example for adding extra log data later,
 
 ```php
 Err::addLogData([
@@ -223,4 +223,4 @@ Err::addLogData([
 
 ```
 
-The Organisation ID and User ID will now be stored in the log. All submitted array values are typecast as strings.
+The Organisation ID and User ID will now be stored in the log. All submitted array values are typecast as strings. To retrieve extra log data use `Err::getLogData()`.

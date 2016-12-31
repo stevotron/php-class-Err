@@ -223,4 +223,4 @@ Err::addLogData([
 
 ```
 
-The Organisation ID and User ID will now be stored in the log. All submitted array values are typecast as strings. To retrieve extra log data use `Err::getLogData()`.
+The Organisation ID and User ID will now be stored in the log. If a submitted key already exists, it will be overwritten. To retrieve extra log data use `Err::getLogData()`.

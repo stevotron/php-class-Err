@@ -405,6 +405,42 @@ class Err {
 	}
 
 	/**
+	 * Triggers a PHP user error of type deprecated
+	 * @param string $message
+	 */
+	public static function triggerDeprecated(string $message)
+	{
+		trigger_error($message, E_USER_DEPRECATED);
+	}
+
+	/**
+	 * Triggers a PHP user error of type error
+	 * @param string $message
+	 */
+	public static function triggerError(string $message)
+	{
+		trigger_error($message, E_USER_ERROR);
+	}
+
+	/**
+	 * Triggers a PHP user error of type notice
+	 * @param string $message
+	 */
+	public static function triggerNotice(string $message)
+	{
+		trigger_error($message, E_USER_NOTICE);
+	}
+
+	/**
+	 * Triggers a PHP user error of type warning
+	 * @param string $message
+	 */
+	public static function triggerWarning(string $message)
+	{
+		trigger_error($message, E_USER_WARNING);
+	}
+
+	/**
 	 * Checks submitted error type contains valid errors
 	 * @param $error_type string "major" or "minor"
 	 * @throws Exception if $error_type is not valid, or errors in submitted $error_type are not valid
@@ -517,7 +553,8 @@ class Err {
 		$invalid_keys = [];
 		foreach ($parameters as $name => $value) {
 			if (array_key_exists($name, $key_map)) {
-				self::$key_map[$name]($value);
+				$method = $key_map[$name];
+				self::$method($value);
 			} else {
 				$invalid_keys[] = $name;
 			}

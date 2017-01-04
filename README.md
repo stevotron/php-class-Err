@@ -130,7 +130,7 @@ include '/path/to/ErrTerminalAction.php';
 Err::initialise([
   'log_directory' => '/path/to/log/dir',
   'terminal_action_development' => 'ErrTerminalAction::development',
-  'terminal_action_production' => 'ErrTerminalAction::production',
+  'terminal_action_production' => 'ErrTerminalAction::production'
 ]);
 
 ```

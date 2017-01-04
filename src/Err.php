@@ -309,7 +309,7 @@ class Err {
 		// check for write permissions to log file
 		$log_file_path = self::$log_directory . '/' . self::$log_file;
 		if (false === is_writable($log_file_path)) {
-			throw new Exception("Log file ($log_file_path) cannot be written to or does not exist");
+			self::triggerError("Log file ($log_file_path) cannot be written to or does not exist");
 		}
 		// define errors that may be set as minor or major (errors that can passed to function defined by set_error_handler())
 		self::$allowed_errors = E_WARNING | E_NOTICE | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_USER_NOTICE | E_STRICT | E_RECOVERABLE_ERROR | E_DEPRECATED | E_USER_DEPRECATED;

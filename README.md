@@ -201,8 +201,8 @@ to get a little more detail,
 ```
 Array (
 	[counts] => Array (
-		[ignore] => 2
-		[background] => 1
+		[minor] => 2
+		[major] => 1
 		[terminal] => 0
 	)
 	[errors] => Array (
@@ -219,7 +219,7 @@ It is possible to add extra data to the error logs for help with debugging. Extr
 ```php
 Err::addLogData([
   'organisation_id' => $_SESSION['organisation_id'],
-  'user_id'         => $_SESSION['user_id']
+  'user_id' => $_SESSION['user_id']
 ]);
 
 ```

@@ -145,7 +145,8 @@ include '/path/to/ErrFatalAction.php';
 Err::initialise([
   'log_directory' => '/path/to/log/dir',
   'fatal_action_development' => 'ErrFatalAction::development',
-  'fatal_action_production' => 'ErrFatalAction::production'
+  'fatal_action_production' => 'ErrFatalAction::production',
+  'fatal_action_silent' => 'ErrFatalAction::silent'
 ]);
 
 ```

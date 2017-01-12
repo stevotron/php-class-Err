@@ -590,7 +590,7 @@ class Err {
 	 */
 	private static function fatalActionDevelopment()
 	{
-		if (self::$terminal_action_development === null) {
+		if (self::$fatal_action_development === null) {
 			$data = self::extract(true);
 			echo '<hr>';
 			echo '<h1>PHP fatal error</h1>';

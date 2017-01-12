@@ -55,7 +55,7 @@ Err::initialise([
 
 ```
 
-If an error is defined for both *minor* and *major*, the error will be treated as *minor*.
+If an error is defined for both *minor* and *major*, the error will be treated as *major*.
 
 
 ##Decoding errors

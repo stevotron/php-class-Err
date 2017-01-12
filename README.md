@@ -36,7 +36,7 @@ If errors are recorded and need to be logged, the details are encoded as a JSON 
 The class categorises PHP errors into three types: *minor*, *major* and *fatal*. 
 * Minor errors are ignored (not logged) if no other error types occur
 * If a major error occurs *all* errors are logged silently in the defined log file
-* Any other error (fatal) causes the application to terminate, the fianl action depends on parameter settings
+* Any other error (fatal) causes the application to terminate, the final action depends on parameter settings
 
 The class has default values which can be overwritten if needed. Only *minor* and *major* values are set, anything else is considered *fatal*.
 

@@ -42,7 +42,7 @@ The class has default values which can be overwritten if needed. Only *minor* an
 
 Allowed values for *minor* and *major* are `E_WARNING`, `E_NOTICE`, `E_CORE_WARNING`, `E_COMPILE_WARNING`, `E_USER_WARNING`, `E_USER_NOTICE`, `E_STRICT`, `E_RECOVERABLE_ERROR`, `E_DEPRECATED` and `E_USER_DEPRECATED`. Any other constants submitted will result in an Exception being thrown.
 
-Here is an example of initialisation including defining error types (this example sets the defult values).
+Here is an example of initialisation including defining error types (this example sets the default values).
 
 ```php
 include '/path/to/Err.php';

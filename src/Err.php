@@ -8,17 +8,17 @@
 class Err {
 
 	/**
-	 * Termination mode ID for development
+	 * Mode ID for development
 	 */
 	const MODE_DEVELOPMENT = 0;
 
 	/**
-	 * Termination mode ID for production
+	 * Mode ID for production
 	 */
 	const MODE_PRODUCTION = 1;
 
 	/**
-	 * Termination mode ID for silent
+	 * Mode ID for silent
 	 */
 	const MODE_SILENT = 2;
 
@@ -33,28 +33,22 @@ class Err {
 	const TYPE_EXCEPTION = 1;
 
 	/**
-	 * Set on initialisation, a bitwise derived integer of errors that may be set as minor or major
-	 * @var integer
-	 */
-	private static $allowed_errors;
-
-	/**
-	 * Number of major errors
+	 * Major error count
 	 * @var integer
 	 */
 	private static $error_count_major = 0;
 
 	/**
-	 * Number of minor errors
+	 * Minor error count
 	 * @var integer
 	 */
 	private static $error_count_minor = 0;
 
 	/**
-	 * Number of terminal errors
+	 * Fatal error count
 	 * @var integer
 	 */
-	private static $error_count_terminal = 0;
+	private static $error_count_fatal = 0;
 
 	/**
 	 * Holds all error data
@@ -63,16 +57,22 @@ class Err {
 	private static $errors = [];
 
 	/**
-	 * Set on initialisation, a bitwise derived integer made with PHP Error Constants controlling which error codes to log silently
+	 * Errors to handle as major, set on initialisation
 	 * @var integer
 	 */
 	private static $errors_major;
 
 	/**
-	 * Set on initialisation, a bitwise derived integer made with PHP Error Constants controlling which error codes to ignore
+	 * Errors to handle as minor, set on initialisation
 	 * @var integer
 	 */
 	private static $errors_minor;
+
+	/**
+	 * Errors that may be set as minor or major, set on initialisation
+	 * @var integer
+	 */
+	private static $errors_settable;
 
 	/**
 	 * Extra data to save with log
@@ -99,22 +99,28 @@ class Err {
 	private static $shutdown_tasks_complete = false;
 
 	/**
-	 * The class and method to call in the event of a terminal error when in development mode
+	 * The class and method to call in the event of a fatal error when in development mode
 	 * @var string
 	 */
-	private static $terminal_action_development;
+	private static $fatal_action_development;
 
 	/**
-	 * The class and method to call in the event of a terminal error when in production mode
+	 * The class and method to call in the event of a fatal error when in production mode
 	 * @var string
 	 */
-	private static $terminal_action_production;
+	private static $fatal_action_production;
 
 	/**
-	 * Determines action for terminal errors
+	 * The class and method to call in the event of a fatal error when in silent mode
+	 * @var string
+	 */
+	private static $fatal_action_silent;
+
+	/**
+	 * Class mode, determines action for fatal errors
 	 * @var int
 	 */
-	private static $termination_mode = self::MODE_DEVELOPMENT;
+	private static $mode = self::MODE_DEVELOPMENT;
 
 	/**
 	 * Timestamp to use in log file with logged errors
@@ -163,7 +169,7 @@ class Err {
 		} else if ($err_no & self::$errors_major) {
 			self::$error_count_major++;
 		} else {
-			self::$error_count_terminal++;
+			self::$error_count_fatal++;
 			self::performShutdownTasks();
 		}
 	}
@@ -182,7 +188,7 @@ class Err {
 			'line' => $e->getLine(),
 			'backtrace' => $e->getTrace()
 		];
-		self::$error_count_terminal++;
+		self::$error_count_fatal++;
 		self::performShutdownTasks();
 	}
 
@@ -199,7 +205,7 @@ class Err {
 				'counts' => [
 					'minor' => self::$error_count_minor,
 					'major' => self::$error_count_major,
-					'terminal' => self::$error_count_terminal
+					'fatal' => self::$error_count_fatal
 				],
 				'errors' => self::$errors
 			];
@@ -210,12 +216,12 @@ class Err {
 		self::$errors = [];
 		self::$error_count_major = 0;
 		self::$error_count_minor = 0;
-		self::$error_count_terminal = 0;
+		self::$error_count_fatal = 0;
 		return $data;
 	}
 
 	/**
-	 * Returns the last error details if they exist without adjusting the errors array
+	 * Returns the last error details, if they exist, without adjusting the errors array
 	 * @return null|array
 	 */
 	public static function getLast()
@@ -312,7 +318,7 @@ class Err {
 			self::triggerError("Log file ($log_file_path) cannot be written to or does not exist");
 		}
 		// define errors that may be set as minor or major (errors that can passed to function defined by set_error_handler())
-		self::$allowed_errors = E_WARNING | E_NOTICE | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_USER_NOTICE | E_STRICT | E_RECOVERABLE_ERROR | E_DEPRECATED | E_USER_DEPRECATED;
+		self::$errors_settable = E_WARNING | E_NOTICE | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_USER_NOTICE | E_STRICT | E_RECOVERABLE_ERROR | E_DEPRECATED | E_USER_DEPRECATED;
 		// use defaults if parameters not set
 		if (self::$timestamp === null) {
 			self::setTimestamp(date('r'));
@@ -335,44 +341,58 @@ class Err {
 	}
 
 	/**
-	 * Sets the terminal action when in development mode
-	 * @param $action
+	 * Sets the fatal action when in development mode
+	 * @param $action Example "Class::Method"
 	 * @throws Exception if action is not callable
 	 */
-	public static function setTerminalActionDevelopment($action)
+	public static function setFatalActionDevelopment($action)
 	{
 		$parts = explode('::', $action, 2);
 		if (false === is_callable($parts)) {
 			throw new Exception("Submitted action ($action) is not callable");
 		}
-		self::$terminal_action_development = $action;
+		self::$fatal_action_development = $action;
 	}
 
 	/**
-	 * Sets the terminal action when in production mode
-	 * @param $action
+	 * Sets the fatal action when in production mode
+	 * @param $action Example "Class::Method"
 	 * @throws Exception if action is not callable
 	 */
-	public static function setTerminalActionProduction($action)
+	public static function setFatalActionProduction($action)
 	{
 		$parts = explode('::', $action, 2);
 		if (false === is_callable($parts)) {
 			throw new Exception("Submitted action ($action) is not callable");
 		}
-		self::$terminal_action_production = $action;
+		self::$fatal_action_production = $action;
 	}
 
 	/**
-	 * Sets termination mode
+	 * Sets the fatal action when in silent mode
+	 * @param $action Example "Class::Method"
+	 * @throws Exception if action is not callable
+	 */
+	public static function setFatalActionSilent($action)
+	{
+		$parts = explode('::', $action, 2);
+		if (false === is_callable($parts)) {
+			throw new Exception("Submitted action ($action) is not callable");
+		}
+		self::$fatal_action_silent = $action;
+	}
+
+	/**
+	 * Sets mode which determines action in the event of a fatal error
 	 * @param int $input
 	 * @throws Exception if $input is not valid
 	 */
-	public static function setTerminationMode($input)
+	public static function setMode($input)
 	{
 		if (false === in_array($input, [self::MODE_DEVELOPMENT, self::MODE_PRODUCTION, self::MODE_SILENT], true)) {
-			throw new Exception('Invalid termination mode submitted');
+			throw new Exception('Invalid mode submitted');
 		}
-		self::$termination_mode = $input;
+		self::$mode = $input;
 	}
 
 	/**
@@ -450,7 +470,7 @@ class Err {
 		if (true !== property_exists('Err', "errors_$error_type")) {
 			throw new Exception('Invalid error type submitted');
 		}
-		if ((self::$allowed_errors & self::${"errors_$error_type"}) !== self::${"errors_$error_type"}) {
+		if ((self::$errors_settable & self::${"errors_$error_type"}) !== self::${"errors_$error_type"}) {
 			throw new Exception("Invalid error types submitted for $error_type errors");
 		}
 	}
@@ -460,10 +480,10 @@ class Err {
 	 */
 	private static function logErrors()
 	{
-		if (self::$error_count_terminal > 0 || self::$error_count_major > 0) {
+		if (self::$error_count_fatal > 0 || self::$error_count_major > 0) {
 			$file_path = self::$log_directory . '/' . self::$log_file;
 			$data['timestamp'] = self::$timestamp;
-			$data['terminal'] = (self::$error_count_terminal > 0);
+			$data['fatal'] = (self::$error_count_fatal > 0);
 			if (self::$extra_log_data !== null) {
 				$data['data'] = self::$extra_log_data;
 			}
@@ -473,20 +493,19 @@ class Err {
 	}
 
 	/**
-	 * Perform final tasks. Actions depends on the type of errors
-	 * occurred and parameter values.
+	 * Performs final tasks based on errors and mode
 	 */
 	private static function performShutdownTasks()
 	{
 		self::$shutdown_tasks_complete = true;
-		if (self::$error_count_terminal === 0 || self::$termination_mode === self::MODE_SILENT) {
+		if (self::$error_count_fatal === 0) {
 			self::logErrors();
-		} else if (self::$termination_mode === self::MODE_DEVELOPMENT) {
-			static::terminalActionDevelopment();
-			self::logErrors();
-		} else if (self::$termination_mode === self::MODE_PRODUCTION) {
-			self::logErrors();
-			static::terminalActionProduction();
+		} else if (self::$mode === self::MODE_SILENT) {
+			self::fatalActionSilent();
+		} else if (self::$mode === self::MODE_DEVELOPMENT) {
+			self::fatalActionDevelopment();
+		} else { // self::$mode === self::MODE_PRODUCTION
+			self::fatalActionProduction();
 		}
 		exit;
 	}
@@ -541,12 +560,13 @@ class Err {
 		$key_map = [
 			'errors_major' => 'setErrorsMajor',
 			'errors_minor' => 'setErrorsMinor',
+			'fatal_action_development' => 'setFatalActionDevelopment',
+			'fatal_action_production' => 'setFatalActionProduction',
+			'fatal_action_silent' => 'setFatalActionSilent',
 			'log_data' => 'addLogData',
 			'log_directory' => 'setLogDirectory',
 			'log_file' => 'setLogFile',
-			'terminal_action_development' => 'setTerminalActionDevelopment',
-			'terminal_action_production' => 'setTerminalActionProduction',
-			'termination_mode' => 'setTerminationMode',
+			'mode' => 'setMode',
 			'timestamp' => 'setTimestamp'
 		];
 		// check submitted keys are valid and submit values to defined methods
@@ -566,14 +586,14 @@ class Err {
 	}
 
 	/**
-	 * Performs terminal action for development mode
+	 * Performs fatal action for development mode
 	 */
-	private static function terminalActionDevelopment()
+	private static function fatalActionDevelopment()
 	{
 		if (self::$terminal_action_development === null) {
 			$data = self::extract(true);
 			echo '<hr>';
-			echo '<h1>PHP script terminated</h1>';
+			echo '<h1>PHP fatal error</h1>';
 			echo '<hr>';
 			echo '<pre>';
 			print_r($data['counts']);
@@ -583,19 +603,32 @@ class Err {
 			print_r($data['errors']);
 			echo '</pre>';
 		} else {
-			call_user_func(self::$terminal_action_development);
+			call_user_func(self::$fatal_action_development);
 		}
 	}
 
 	/**
-	 * Performs terminal action for production mode
+	 * Performs fatal action for production mode
 	 */
-	private static function terminalActionProduction()
+	private static function fatalActionProduction()
 	{
-		if (self::$terminal_action_production === null) {
+		if (self::$fatal_action_production === null) {
+			self::logErrors();
 			echo '<h1>Sorry, an error occurred</h1><hr><p>Details have been logged</p>';
 		} else {
-			call_user_func(self::$terminal_action_production);
+			call_user_func(self::$fatal_action_production);
+		}
+	}
+	
+	/**
+	 * Performs fatal action for silent mode
+	 */
+	private static function fatalActionSilent()
+	{
+		if (self::$fatal_action_silent === null) {
+			self::logErrors();
+		} else {
+			call_user_func(self::$fatal_action_production);
 		}
 	}
 }

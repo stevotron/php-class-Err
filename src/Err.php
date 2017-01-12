@@ -164,10 +164,10 @@ class Err {
 			'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)
 		];
 		// action depends on error type
-		if ($err_no & self::$errors_minor) {
-			self::$error_count_minor++;
-		} else if ($err_no & self::$errors_major) {
+		if ($err_no & self::$errors_major) {
 			self::$error_count_major++;
+		} else if ($err_no & self::$errors_minor) {
+			self::$error_count_minor++;
 		} else {
 			self::$error_count_fatal++;
 			self::performShutdownTasks();

@@ -156,54 +156,6 @@ class Err {
 			self::$extra_log_data[$key] = $value;
 		}
 	}
-
-	/**
-	 * Handles an error, registered with set_error_handler()
-	 * @param $err_no
-	 * @param $err_str
-	 * @param $err_file
-	 * @param $err_line
-	 */
-	public static function errorHandler($err_no, $err_str, $err_file, $err_line)
-	{
-		// store error details
-		self::$errors[] = [
-			'type' => self::TYPE_ERROR,
-			'code' => $err_no,
-			'message' => $err_str,
-			'file' => $err_file,
-			'line' => $err_line,
-			'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)
-		];
-		// action depends on error type
-		if ($err_no & self::$errors_major) {
-			self::$error_count_major++;
-		} else if ($err_no & self::$errors_minor) {
-			self::$error_count_minor++;
-		} else {
-			self::$error_count_fatal++;
-			self::performShutdownTasks();
-		}
-	}
-
-	/**
-	 * Handles an Exception
-	 * @param Exception $e
-	 */
-	public static function exceptionHandler(Exception $e)
-	{
-		self::$errors[] = [
-			'type' => self::TYPE_EXCEPTION,
-			'code' => $e->getCode(),
-			'message' => $e->getMessage(),
-			'file' => $e->getFile(),
-			'line' => $e->getLine(),
-			'backtrace' => $e->getTrace()
-		];
-		self::$error_count_fatal++;
-		self::performShutdownTasks();
-	}
-
 	/**
 	 * Extracts any error data so far then empty the errors array
 	 * @param bool $with_counts Return error counts as well?
@@ -317,6 +269,53 @@ class Err {
 	}
 
 	/**
+	 * Handles an error, registered with set_error_handler()
+	 * @param $err_no
+	 * @param $err_str
+	 * @param $err_file
+	 * @param $err_line
+	 */
+	public static function handleError($err_no, $err_str, $err_file, $err_line)
+	{
+		// store error details
+		self::$errors[] = [
+			'type' => self::TYPE_ERROR,
+			'code' => $err_no,
+			'message' => $err_str,
+			'file' => $err_file,
+			'line' => $err_line,
+			'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)
+		];
+		// action depends on error type
+		if ($err_no & self::$errors_major) {
+			self::$error_count_major++;
+		} else if ($err_no & self::$errors_minor) {
+			self::$error_count_minor++;
+		} else {
+			self::$error_count_fatal++;
+			self::performShutdownTasks();
+		}
+	}
+
+	/**
+	 * Handles an Exception
+	 * @param Exception $e
+	 */
+	public static function handleException(Exception $e)
+	{
+		self::$errors[] = [
+			'type' => self::TYPE_EXCEPTION,
+			'code' => $e->getCode(),
+			'message' => $e->getMessage(),
+			'file' => $e->getFile(),
+			'line' => $e->getLine(),
+			'backtrace' => $e->getTrace()
+		];
+		self::$error_count_fatal++;
+		self::performShutdownTasks();
+	}
+	
+	/**
 	 * Initialise error logging
 	 * @param array $parameters Array of parameters as expected by setParametersWithArray()
 	 * @throws Exception If log file does not exist or cannot be written to
@@ -348,7 +347,7 @@ class Err {
 		// do not display errors
 		error_reporting(0);
 		// register error handling functions
-		set_error_handler('Err::errorHandler');
+		set_error_handler('Err::handleError');
 		register_shutdown_function('Err::shutdownFunction');
 	}
 
@@ -458,13 +457,13 @@ class Err {
 		// no need to run if shutdown tasks have already been completed
 		if (self::$shutdown_tasks_complete === true) return;
 		// The following are fatal errors which will not be processed by the function set in set_error_handler()
-		// They will need to be manually passed to errorHandler()
+		// They will need to be manually passed to handleError()
 		$core_fatal = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR;
 		// Get the last error
 		$error = error_get_last();
-		// If the last error has a match in $core_fatal pass details to errorHandler
+		// If the last error has a match in $core_fatal pass details to handleError()
 		if ($error !== null && ($error['type'] & $core_fatal)) {
-			self::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
+			self::handleError($error['type'], $error['message'], $error['file'], $error['line']);
 		} else {
 			self::performShutdownTasks();
 		}

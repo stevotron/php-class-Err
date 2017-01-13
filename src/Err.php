@@ -7,12 +7,12 @@
  * Use in earlier versions will result in an undefined constant error
  */
 class Err {
-	
+
 	/**
 	 * Mode ID for custom
 	 */
 	const MODE_CUSTOM = 0;
-	
+
 	/**
 	 * Mode ID for development
 	 */
@@ -541,16 +541,14 @@ class Err {
 	{
 		if (self::$fatal_action_development === null) {
 			$data = self::extract(true);
-			echo '<hr>';
-			echo '<h1>PHP fatal error</h1>';
-			echo '<hr>';
-			echo '<pre>';
+			echo '<!DOCTYPE html><head><meta charset="utf-8"><title>Fatal error</title>';
+			echo '<style>body{font-family:Helvetica,Arial,sans-serif;text-align:center}';
+			echo 'div{margin:50px auto;text-align:left;width:100%;max-width:1000px}</style></head>';
+			echo '<body><div><h1>PHP fatal error</h1><hr><pre>';
 			print_r($data['counts']);
-			echo '</pre>';
-			echo '<hr>';
-			echo '<pre>';
+			echo '</pre><hr><pre>';
 			print_r($data['errors']);
-			echo '</pre>';
+			echo '</pre></div></body></html>';
 		} else {
 			call_user_func(self::$fatal_action_development);
 		}
@@ -563,7 +561,9 @@ class Err {
 	{
 		if (self::$fatal_action_production === null) {
 			self::logErrors();
-			echo '<h1>Sorry, an error occurred</h1><hr><p>Details have been logged</p>';
+			echo '<!DOCTYPE html><head><title>Fatal error</title>';
+			echo '<style>body{text-align:center;font-family:Helvetica,Arial,sans-serif}h1{margin-top:50px}</style>';
+			echo '</head><body><h1>Application error</h1><p>Details have been logged</p></body></html>';
 		} else {
 			call_user_func(self::$fatal_action_production);
 		}

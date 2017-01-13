@@ -1,7 +1,8 @@
 <?php
 
 /**
- * Class Err
+ * v1.0.0-beta
+ * Handles all PHP errors, logging if needed
  * Built for PHP >= 5.4.0
  * Use in earlier versions will result in an undefined constant error
  */
@@ -341,8 +342,28 @@ class Err {
 	}
 
 	/**
+	 * Checks if logging is required, logs if needed, clears log
+	 * @return bool If logging occurred true, otherwise false
+	 */
+	public static function logErrors()
+	{
+		if (self::$error_count_fatal > 0 || self::$error_count_major > 0) {
+			$file_path = self::$log_directory . '/' . self::$log_file;
+			$data['timestamp'] = self::$timestamp;
+			$data['fatal'] = (self::$error_count_fatal > 0);
+			if (self::$extra_log_data !== null) {
+				$data['data'] = self::$extra_log_data;
+			}
+			$data['errors'] = self::extract();
+			file_put_contents($file_path, json_encode($data) . "\n", FILE_APPEND | LOCK_EX);
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Sets the fatal action when in development mode
-	 * @param $action Example "Class::Method"
+	 * @param string $action Example "Class::Method"
 	 * @throws Exception if action is not callable
 	 */
 	public static function setFatalActionDevelopment($action)
@@ -356,7 +377,7 @@ class Err {
 
 	/**
 	 * Sets the fatal action when in production mode
-	 * @param $action Example "Class::Method"
+	 * @param string $action Example "Class::Method"
 	 * @throws Exception if action is not callable
 	 */
 	public static function setFatalActionProduction($action)
@@ -370,7 +391,7 @@ class Err {
 
 	/**
 	 * Sets the fatal action when in silent mode
-	 * @param $action Example "Class::Method"
+	 * @param string $action Example "Class::Method"
 	 * @throws Exception if action is not callable
 	 */
 	public static function setFatalActionSilent($action)
@@ -428,7 +449,7 @@ class Err {
 	 * Triggers a PHP user error of type deprecated
 	 * @param string $message
 	 */
-	public static function triggerDeprecated(string $message)
+	public static function triggerDeprecated($message)
 	{
 		trigger_error($message, E_USER_DEPRECATED);
 	}
@@ -437,7 +458,7 @@ class Err {
 	 * Triggers a PHP user error of type error
 	 * @param string $message
 	 */
-	public static function triggerError(string $message)
+	public static function triggerError($message)
 	{
 		trigger_error($message, E_USER_ERROR);
 	}
@@ -446,7 +467,7 @@ class Err {
 	 * Triggers a PHP user error of type notice
 	 * @param string $message
 	 */
-	public static function triggerNotice(string $message)
+	public static function triggerNotice($message)
 	{
 		trigger_error($message, E_USER_NOTICE);
 	}
@@ -455,7 +476,7 @@ class Err {
 	 * Triggers a PHP user error of type warning
 	 * @param string $message
 	 */
-	public static function triggerWarning(string $message)
+	public static function triggerWarning($message)
 	{
 		trigger_error($message, E_USER_WARNING);
 	}
@@ -476,19 +497,49 @@ class Err {
 	}
 
 	/**
-	 * Saves any errors to log file
+	 * Performs fatal action for development mode
 	 */
-	private static function logErrors()
+	private static function fatalActionDevelopment()
 	{
-		if (self::$error_count_fatal > 0 || self::$error_count_major > 0) {
-			$file_path = self::$log_directory . '/' . self::$log_file;
-			$data['timestamp'] = self::$timestamp;
-			$data['fatal'] = (self::$error_count_fatal > 0);
-			if (self::$extra_log_data !== null) {
-				$data['data'] = self::$extra_log_data;
-			}
-			$data['log'] = self::$errors;
-			file_put_contents($file_path, json_encode($data) . "\n", FILE_APPEND | LOCK_EX);
+		if (self::$fatal_action_development === null) {
+			$data = self::extract(true);
+			echo '<hr>';
+			echo '<h1>PHP fatal error</h1>';
+			echo '<hr>';
+			echo '<pre>';
+			print_r($data['counts']);
+			echo '</pre>';
+			echo '<hr>';
+			echo '<pre>';
+			print_r($data['errors']);
+			echo '</pre>';
+		} else {
+			call_user_func(self::$fatal_action_development);
+		}
+	}
+
+	/**
+	 * Performs fatal action for production mode
+	 */
+	private static function fatalActionProduction()
+	{
+		if (self::$fatal_action_production === null) {
+			self::logErrors();
+			echo '<h1>Sorry, an error occurred</h1><hr><p>Details have been logged</p>';
+		} else {
+			call_user_func(self::$fatal_action_production);
+		}
+	}
+
+	/**
+	 * Performs fatal action for silent mode
+	 */
+	private static function fatalActionSilent()
+	{
+		if (self::$fatal_action_silent === null) {
+			self::logErrors();
+		} else {
+			call_user_func(self::$fatal_action_production);
 		}
 	}
 
@@ -582,53 +633,6 @@ class Err {
 		if ($invalid_keys) {
 			$invalid_key_list = implode(', ', $invalid_keys);
 			throw new Exception("Invalid keys ($invalid_key_list) submitted");
-		}
-	}
-
-	/**
-	 * Performs fatal action for development mode
-	 */
-	private static function fatalActionDevelopment()
-	{
-		if (self::$fatal_action_development === null) {
-			$data = self::extract(true);
-			echo '<hr>';
-			echo '<h1>PHP fatal error</h1>';
-			echo '<hr>';
-			echo '<pre>';
-			print_r($data['counts']);
-			echo '</pre>';
-			echo '<hr>';
-			echo '<pre>';
-			print_r($data['errors']);
-			echo '</pre>';
-		} else {
-			call_user_func(self::$fatal_action_development);
-		}
-	}
-
-	/**
-	 * Performs fatal action for production mode
-	 */
-	private static function fatalActionProduction()
-	{
-		if (self::$fatal_action_production === null) {
-			self::logErrors();
-			echo '<h1>Sorry, an error occurred</h1><hr><p>Details have been logged</p>';
-		} else {
-			call_user_func(self::$fatal_action_production);
-		}
-	}
-	
-	/**
-	 * Performs fatal action for silent mode
-	 */
-	private static function fatalActionSilent()
-	{
-		if (self::$fatal_action_silent === null) {
-			self::logErrors();
-		} else {
-			call_user_func(self::$fatal_action_production);
 		}
 	}
 }

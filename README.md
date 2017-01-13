@@ -90,8 +90,9 @@ Fatal actions can be customised by creating a separate class with a method for e
 
 ```php
 ErrFatal {
+
   /**
-   * Perfoms final tasks for fatal errors when in development mode
+   * Performs final tasks for fatal errors when in development mode
    */
   public static function development()
   {
@@ -115,7 +116,7 @@ ErrFatal {
   }
 
   /**
-   * Perfoms final tasks for fatal errors when in production mode
+   * Performs final tasks for fatal errors when in production mode
    */
   public static function production()
   {
@@ -124,7 +125,7 @@ ErrFatal {
   }
   
   /**
-   * Perfoms final tasks for fatal errors when in silent mode
+   * Performs final tasks for fatal errors when in silent mode
    */
   public static function silent()
   {

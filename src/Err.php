@@ -7,21 +7,26 @@
  * Use in earlier versions will result in an undefined constant error
  */
 class Err {
-
+	
+	/**
+	 * Mode ID for custom
+	 */
+	const MODE_CUSTOM = 0;
+	
 	/**
 	 * Mode ID for development
 	 */
-	const MODE_DEVELOPMENT = 0;
+	const MODE_DEVELOPMENT = 1;
 
 	/**
 	 * Mode ID for production
 	 */
-	const MODE_PRODUCTION = 1;
+	const MODE_PRODUCTION = 2;
 
 	/**
 	 * Mode ID for silent
 	 */
-	const MODE_SILENT = 2;
+	const MODE_SILENT = 3;
 
 	/**
 	 * Error type ID for error
@@ -82,22 +87,10 @@ class Err {
 	private static $extra_log_data;
 
 	/**
-	 * The path to log directory, set on initialisation
+	 * The class and method to call in the event of a fatal error when in custom mode
 	 * @var string
 	 */
-	private static $log_directory;
-
-	/**
-	 * The name of the file where logs will be saved
-	 * @var string
-	 */
-	private static $log_file = 'errors.txt';
-
-	/**
-	 * Set to true when performShutdownTasks() runs
-	 * @var bool
-	 */
-	private static $shutdown_tasks_complete = false;
+	private static $fatal_action_custom;
 
 	/**
 	 * The class and method to call in the event of a fatal error when in development mode
@@ -116,6 +109,24 @@ class Err {
 	 * @var string
 	 */
 	private static $fatal_action_silent;
+
+	/**
+	 * The path to log directory, set on initialisation
+	 * @var string
+	 */
+	private static $log_directory;
+
+	/**
+	 * The name of the file where logs will be saved
+	 * @var string
+	 */
+	private static $log_file = 'errors.txt';
+
+	/**
+	 * Set to true when performShutdownTasks() runs
+	 * @var bool
+	 */
+	private static $shutdown_tasks_complete = false;
 
 	/**
 	 * Class mode, determines action for fatal errors
@@ -362,6 +373,20 @@ class Err {
 	}
 
 	/**
+	 * Sets the fatal action when in custom mode
+	 * @param string $action Example "Class::Method"
+	 * @throws Exception if action is not callable
+	 */
+	public static function setFatalActionCustom($action)
+	{
+		$parts = explode('::', $action, 2);
+		if (false === is_callable($parts)) {
+			throw new Exception("Submitted action ($action) is not callable");
+		}
+		self::$fatal_action_custom = $action;
+	}
+
+	/**
 	 * Sets the fatal action when in development mode
 	 * @param string $action Example "Class::Method"
 	 * @throws Exception if action is not callable
@@ -497,6 +522,19 @@ class Err {
 	}
 
 	/**
+	 * Performs fatal action for custom mode
+	 */
+	private static function fatalActionCustom()
+	{
+		if (self::$fatal_action_custom === null) {
+			self::logErrors();
+			echo '<h1>Custom fatal action has run</h1><hr><p>Errors logged</p>';
+		} else {
+			call_user_func(self::$fatal_action_custom);
+		}
+	}
+
+	/**
 	 * Performs fatal action for development mode
 	 */
 	private static function fatalActionDevelopment()
@@ -551,12 +589,14 @@ class Err {
 		self::$shutdown_tasks_complete = true;
 		if (self::$error_count_fatal === 0) {
 			self::logErrors();
-		} else if (self::$mode === self::MODE_SILENT) {
-			self::fatalActionSilent();
+		} else if (self::$mode === self::MODE_CUSTOM) {
+			self::fatalActionCustom();
 		} else if (self::$mode === self::MODE_DEVELOPMENT) {
 			self::fatalActionDevelopment();
-		} else { // self::$mode === self::MODE_PRODUCTION
+		} else if (self::$mode === self::MODE_PRODUCTION) {
 			self::fatalActionProduction();
+		} else { // self::$mode === self::MODE_SILENT
+			self::fatalActionSilent();
 		}
 		exit;
 	}

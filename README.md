@@ -86,12 +86,12 @@ The class will perform one of three actions in the event of a fatal error. This 
 
 Mode is set during initialisation, [see all initilisation options](#all-valid-options-during-initialisation).
 
-Fatal actions can be customised by creating a separate class and defining them on initialisation. Do not forget to log any errors using `Err::logErrors()`.
+Fatal actions can be customised by creating a separate class with a method for each mode. These are defined on initialisation. Do not forget to log any errors using `Err::logErrors()`.
 
 ```php
-ErrFatalAction {
+ErrFatal {
   /**
-   * Method will be called the event of a fatal action when in development mode
+   * Perfoms final tasks for fatal errors when in development mode
    */
   public static function development()
   {
@@ -115,7 +115,7 @@ ErrFatalAction {
   }
 
   /**
-   * Method will run in the event of a fatal action when in production mode
+   * Perfoms final tasks for fatal errors when in production mode
    */
   public static function production()
   {
@@ -124,7 +124,7 @@ ErrFatalAction {
   }
   
   /**
-   * Method will run in the event of a fatal action when in silent mode
+   * Perfoms final tasks for fatal errors when in silent mode
    */
   public static function silent()
   {
@@ -140,13 +140,13 @@ Once the custom class has been written, details can be set on initialisation.
 
 ```php
 include '/path/to/Err.php';
-include '/path/to/ErrFatalAction.php';
+include '/path/to/ErrFatal.php';
 
 Err::initialise([
   'log_directory' => '/path/to/log/dir',
-  'fatal_action_development' => 'ErrFatalAction::development',
-  'fatal_action_production' => 'ErrFatalAction::production',
-  'fatal_action_silent' => 'ErrFatalAction::silent'
+  'fatal_action_development' => 'ErrFatal::development',
+  'fatal_action_production' => 'ErrFatal::production',
+  'fatal_action_silent' => 'ErrFatal::silent'
 ]);
 
 ```

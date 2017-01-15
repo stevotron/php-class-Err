@@ -434,7 +434,7 @@ class Err {
 	 */
 	public static function setMode($input)
 	{
-		if (false === in_array($input, [self::MODE_DEVELOPMENT, self::MODE_PRODUCTION, self::MODE_SILENT], true)) {
+		if (false === in_array($input, [self::MODE_CUSTOM, self::MODE_DEVELOPMENT, self::MODE_PRODUCTION, self::MODE_SILENT], true)) {
 			throw new Exception('Invalid mode submitted');
 		}
 		self::$mode = $input;

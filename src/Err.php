@@ -9,6 +9,21 @@
 class Err {
 
 	/**
+	 * ID for class fatal error
+	 */
+	const ERR_FATAL = 0;
+
+	/**
+	 * ID for class major error
+	 */
+	const ERR_MAJOR = 1;
+
+	/**
+	 * ID for class minor error
+	 */
+	const ERR_MINOR = 2;
+
+	/**
 	 * Mode ID for custom
 	 */
 	const MODE_CUSTOM = 0;
@@ -29,14 +44,19 @@ class Err {
 	const MODE_SILENT = 3;
 
 	/**
-	 * Error type ID for error
+	 * Error type ID for class error
 	 */
-	const TYPE_ERROR = 0;
+	const TYPE_CLASS_ERROR = 0;
+
+	/**
+	 * Error type ID for PHP error
+	 */
+	const TYPE_PHP_ERROR = 1;
 
 	/**
 	 * Error type ID for exception
 	 */
-	const TYPE_EXCEPTION = 1;
+	const TYPE_EXCEPTION = 2;
 
 	/**
 	 * Major error count
@@ -135,7 +155,7 @@ class Err {
 	private static $mode = self::MODE_DEVELOPMENT;
 
 	/**
-	 * Timestamp to use in log file with logged errors
+	 * Timestamp to use in log file with logged errors, set on initialisation
 	 * @var string
 	 */
 	private static $timestamp;
@@ -185,6 +205,25 @@ class Err {
 	}
 
 	/**
+	 * Gets a class error name from its integer value
+	 * @param int $id
+	 * @return string The name of the error code submitted
+	 */
+	public static function getClassErrorName($id)
+	{
+		switch ($id) {
+			case self::ERR_FATAL: // 0
+				return 'ERR_FATAL';
+			case self::ERR_MAJOR: // 1
+				return 'ERR_MAJOR';
+			case self::ERR_MINOR: // 2
+				return 'ERR_MINOR';
+			default:
+				return 'UNKNOWN_ERR';
+		}
+	}
+
+	/**
 	 * Returns the last error details, if they exist, without adjusting the errors array
 	 * @return null|array
 	 */
@@ -208,12 +247,12 @@ class Err {
 
 	/**
 	 * Gets an error name from its integer value
-	 * @param $error_code int
+	 * @param int $id
 	 * @return string The name of the error code submitted
 	 */
-	public static function getName($error_code)
+	public static function getPhpErrorName($id)
 	{
-		switch ($error_code) {
+		switch ($id) {
 			case E_ERROR: // 1
 				return 'E_ERROR';
 			case E_WARNING: // 2
@@ -247,7 +286,7 @@ class Err {
 			case E_ALL: // 32767
 				return 'E_ALL';
 			default:
-				return 'UNKNOWN_ERROR_CODE';
+				return 'UNKNOWN_PHP_ERROR';
 		}
 	}
 
@@ -259,9 +298,11 @@ class Err {
 	public static function getType($error_type)
 	{
 		switch ($error_type) {
-			case self::TYPE_ERROR: // 0
-				return 'Error';
-			case self::TYPE_EXCEPTION: // 1
+			case self::TYPE_CLASS_ERROR: // 0
+				return 'Class Error';
+			case self::TYPE_PHP_ERROR: // 1
+				return 'PHP Error';
+			case self::TYPE_EXCEPTION: // 2
 				return 'Exception';
 			default:
 				return 'Unknown error type';
@@ -279,7 +320,7 @@ class Err {
 	{
 		// store error details
 		self::$errors[] = [
-			'type' => self::TYPE_ERROR,
+			'type' => self::TYPE_PHP_ERROR,
 			'code' => $err_no,
 			'message' => $err_str,
 			'file' => $err_file,
@@ -298,13 +339,14 @@ class Err {
 	}
 
 	/**
-	 * Handles an Exception
+	 * Handles an Exception, registered with set_exception_handler()
 	 * @param Exception $e
 	 */
 	public static function handleException(Exception $e)
 	{
 		self::$errors[] = [
 			'type' => self::TYPE_EXCEPTION,
+			'name' => get_class($e),
 			'code' => $e->getCode(),
 			'message' => $e->getMessage(),
 			'file' => $e->getFile(),
@@ -326,13 +368,13 @@ class Err {
 		// check for write permissions to log file
 		$log_file_path = self::$log_directory . '/' . self::$log_file;
 		if (false === is_writable($log_file_path)) {
-			self::triggerError("Log file ($log_file_path) cannot be written to or does not exist");
+			self::triggerFatal("Log file ($log_file_path) cannot be written to or does not exist");
 		}
 		// define errors that may be set as minor or major (errors that can passed to function defined by set_error_handler())
 		self::$errors_settable = E_WARNING | E_NOTICE | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_USER_NOTICE | E_STRICT | E_RECOVERABLE_ERROR | E_DEPRECATED | E_USER_DEPRECATED;
 		// use defaults if parameters not set
 		if (self::$timestamp === null) {
-			self::setTimestamp(date('r'));
+			self::setTimestamp(date('c'));
 		}
 		if (self::$errors_minor === null) {
 			self::$errors_minor = E_NOTICE | E_USER_NOTICE | E_STRICT;
@@ -346,8 +388,9 @@ class Err {
 		}
 		// do not display errors
 		error_reporting(0);
-		// register error handling functions
+		// register functions
 		set_error_handler('Err::handleError');
+		set_exception_handler('Err::handleException');
 		register_shutdown_function('Err::shutdownFunction');
 	}
 
@@ -360,7 +403,7 @@ class Err {
 		if (self::$error_count_fatal > 0 || self::$error_count_major > 0) {
 			$file_path = self::$log_directory . '/' . self::$log_file;
 			$data['timestamp'] = self::$timestamp;
-			$data['fatal'] = (self::$error_count_fatal > 0);
+			$data['fatal_type'] = (self::$error_count_fatal > 0) ? self::getLast()['type'] : null;
 			if (self::$extra_log_data !== null) {
 				$data['data'] = self::$extra_log_data;
 			}
@@ -470,39 +513,61 @@ class Err {
 	}
 
 	/**
-	 * Triggers a PHP user error of type deprecated
+	 * Triggers a fatal error
 	 * @param string $message
 	 */
-	public static function triggerDeprecated($message)
+	public static function triggerFatal($message)
 	{
-		trigger_error($message, E_USER_DEPRECATED);
+		$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+		$details = array_shift($backtrace);
+		self::$errors[] = [
+			'type' => self::TYPE_CLASS_ERROR,
+			'code' => self::ERR_FATAL,
+			'message' => $message,
+			'file' => $details['file'],
+			'line' => $details['line'],
+			'backtrace' => $backtrace
+		];
+		self::$error_count_fatal++;
+		self::performShutdownTasks();
 	}
 
 	/**
-	 * Triggers a PHP user error of type error
+	 * Triggers a major error
 	 * @param string $message
 	 */
-	public static function triggerError($message)
+	public static function triggerMajor($message)
 	{
-		trigger_error($message, E_USER_ERROR);
+		$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+		$details = array_shift($backtrace);
+		self::$errors[] = [
+			'type' => self::TYPE_CLASS_ERROR,
+			'code' => self::ERR_MAJOR,
+			'message' => $message,
+			'file' => $details['file'],
+			'line' => $details['line'],
+			'backtrace' => $backtrace
+		];
+		self::$error_count_major++;
 	}
 
 	/**
-	 * Triggers a PHP user error of type notice
+	 * Triggers a minor error
 	 * @param string $message
 	 */
-	public static function triggerNotice($message)
+	public static function triggerMinor($message)
 	{
-		trigger_error($message, E_USER_NOTICE);
-	}
-
-	/**
-	 * Triggers a PHP user error of type warning
-	 * @param string $message
-	 */
-	public static function triggerWarning($message)
-	{
-		trigger_error($message, E_USER_WARNING);
+		$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+		$details = array_shift($backtrace);
+		self::$errors[] = [
+			'type' => self::TYPE_CLASS_ERROR,
+			'code' => self::ERR_MINOR,
+			'message' => $message,
+			'file' => $details['file'],
+			'line' => $details['line'],
+			'backtrace' => $backtrace
+		];
+		self::$error_count_minor++;
 	}
 
 	/**
@@ -539,11 +604,22 @@ class Err {
 	private static function fatalActionDevelopment()
 	{
 		if (self::$fatal_action_development === null) {
+			$last_error = self::getLast();
+			switch ($last_error['type']) {
+				case self::TYPE_CLASS_ERROR:
+					$heading = 'Err: '.self::getClassErrorName($last_error['code']);
+					break;
+				case self::TYPE_PHP_ERROR:
+					$heading = 'PHP Error: ' . self::getPhpErrorName($last_error['code']);
+					break;
+				default: // self::TYPE_EXCEPTION
+					$heading = 'Uncaught ' . $last_error['name'];
+			}
 			$data = self::extract(true);
 			echo '<!DOCTYPE html><head><meta charset="utf-8"><title>Fatal error</title>';
 			echo '<style>body{font-family:Helvetica,Arial,sans-serif;text-align:center}';
 			echo 'div{margin:50px auto;text-align:left;width:100%;max-width:1000px}</style></head>';
-			echo '<body><div><h1>PHP fatal error</h1><hr><pre>';
+			echo '<body><div><h1>' . $heading . '</h1><hr><pre>';
 			print_r($data['counts']);
 			echo '</pre><hr><pre>';
 			print_r($data['errors']);

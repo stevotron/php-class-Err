@@ -8,55 +8,30 @@
  */
 class Err {
 
-	/**
-	 * ID for class fatal error
+	/*
+	 * Development fatal action ID
 	 */
-	const ERR_FATAL = 0;
+	const FATAL_ACTION_DEVELOPMENT = 0;
 
-	/**
-	 * ID for class major error
+	/*
+	 * Production fatal action ID
 	 */
-	const ERR_MAJOR = 1;
+	const FATAL_ACTION_PRODUCTION = 1;
 
-	/**
-	 * ID for class minor error
+	/*
+	 * Silent fatal action ID
 	 */
-	const ERR_MINOR = 2;
-
-	/**
-	 * Mode ID for custom
-	 */
-	const MODE_CUSTOM = 0;
-
-	/**
-	 * Mode ID for development
-	 */
-	const MODE_DEVELOPMENT = 1;
-
-	/**
-	 * Mode ID for production
-	 */
-	const MODE_PRODUCTION = 2;
-
-	/**
-	 * Mode ID for silent
-	 */
-	const MODE_SILENT = 3;
-
-	/**
-	 * Error type ID for class error
-	 */
-	const TYPE_CLASS_ERROR = 0;
+	const FATAL_ACTION_SILENT = 2;
 
 	/**
 	 * Error type ID for PHP error
 	 */
-	const TYPE_PHP_ERROR = 1;
+	const TYPE_PHP_ERROR = 0;
 
 	/**
 	 * Error type ID for exception
 	 */
-	const TYPE_EXCEPTION = 2;
+	const TYPE_EXCEPTION = 1;
 
 	/**
 	 * Major error count
@@ -107,28 +82,10 @@ class Err {
 	private static $extra_log_data;
 
 	/**
-	 * The class and method to call in the event of a fatal error when in custom mode
-	 * @var string
+	 * The class and method to call in the event of a fatal error
+	 * @var int|string
 	 */
-	private static $fatal_action_custom;
-
-	/**
-	 * The class and method to call in the event of a fatal error when in development mode
-	 * @var string
-	 */
-	private static $fatal_action_development;
-
-	/**
-	 * The class and method to call in the event of a fatal error when in production mode
-	 * @var string
-	 */
-	private static $fatal_action_production;
-
-	/**
-	 * The class and method to call in the event of a fatal error when in silent mode
-	 * @var string
-	 */
-	private static $fatal_action_silent;
+	private static $fatal_action = self::FATAL_ACTION_DEVELOPMENT;
 
 	/**
 	 * The path to log directory, set on initialisation
@@ -147,12 +104,6 @@ class Err {
 	 * @var bool
 	 */
 	private static $shutdown_tasks_complete = false;
-
-	/**
-	 * Class mode, determines action for fatal errors
-	 * @var int
-	 */
-	private static $mode = self::MODE_DEVELOPMENT;
 
 	/**
 	 * Timestamp to use in log file with logged errors, set on initialisation
@@ -205,25 +156,6 @@ class Err {
 	}
 
 	/**
-	 * Gets a class error name from its integer value
-	 * @param int $id
-	 * @return string The name of the error code submitted
-	 */
-	public static function getClassErrorName($id)
-	{
-		switch ($id) {
-			case self::ERR_FATAL: // 0
-				return 'ERR_FATAL';
-			case self::ERR_MAJOR: // 1
-				return 'ERR_MAJOR';
-			case self::ERR_MINOR: // 2
-				return 'ERR_MINOR';
-			default:
-				return 'UNKNOWN_ERR';
-		}
-	}
-
-	/**
 	 * Returns the last error details, if they exist, without adjusting the errors array
 	 * @return null|array
 	 */
@@ -250,7 +182,7 @@ class Err {
 	 * @param int $id
 	 * @return string The name of the error code submitted
 	 */
-	public static function getPhpErrorName($id)
+	public static function getErrorName($id)
 	{
 		switch ($id) {
 			case E_ERROR: // 1
@@ -295,18 +227,98 @@ class Err {
 	 * @param $error_type int
 	 * @return string The name of the error type submitted
 	 */
-	public static function getType($error_type)
+	public static function getErrorType($error_type)
 	{
 		switch ($error_type) {
-			case self::TYPE_CLASS_ERROR: // 0
-				return 'Class Error';
-			case self::TYPE_PHP_ERROR: // 1
+			case self::TYPE_PHP_ERROR: // 0
 				return 'PHP Error';
-			case self::TYPE_EXCEPTION: // 2
+			case self::TYPE_EXCEPTION: // 1
 				return 'Exception';
 			default:
 				return 'Unknown error type';
 		}
+	}
+
+	/**
+	 * Initialise error logging
+	 * @param array $parameters Array of parameters as expected by setParametersWithArray()
+	 * @throws Exception
+	 */
+	public static function init($parameters)
+	{
+		self::setParametersWithArray($parameters);
+		// check for write permissions to log file
+		$log_file_path = self::$log_directory . '/' . self::$log_file;
+		if (false === is_writable($log_file_path)) {
+			throw new Exception("Log file ($log_file_path) cannot be written to or does not exist");
+		}
+		// define errors that may be set as minor or major (errors that can passed to function defined by set_error_handler())
+		self::$errors_settable = E_WARNING | E_NOTICE | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_USER_NOTICE | E_STRICT | E_RECOVERABLE_ERROR | E_DEPRECATED | E_USER_DEPRECATED;
+		// use defaults if parameters not set
+		if (self::$timestamp === null) {
+			self::setTimestamp(date('c'));
+		}
+		if (self::$errors_minor === null) {
+			self::$errors_minor = E_NOTICE | E_USER_NOTICE | E_STRICT;
+		} else {
+			self::checkErrorsAreValid('minor');
+		}
+		if (self::$errors_major === null) {
+			self::$errors_major = E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED;
+		} else {
+			self::checkErrorsAreValid('major');
+		}
+		// do not display errors
+		error_reporting(0);
+		// register functions
+		set_error_handler('Err::_handleError');
+		set_exception_handler('Err::_handleException');
+		register_shutdown_function('Err::_shutdownFunction');
+	}
+
+	/**
+	 * Checks if logging is required, logs if needed, clears log
+	 * @return bool If logging occurred true, otherwise false
+	 */
+	public static function logErrors()
+	{
+		if (self::$error_count_fatal > 0 || self::$error_count_major > 0) {
+			$file_path = self::$log_directory . '/' . self::$log_file;
+			$data['timestamp'] = self::$timestamp;
+			$data['fatal_type'] = (self::$error_count_fatal > 0) ? self::getLast()['type'] : null;
+			if (self::$extra_log_data !== null) {
+				$data['data'] = self::$extra_log_data;
+			}
+			$data['errors'] = self::extract();
+			file_put_contents($file_path, json_encode($data) . "\n", FILE_APPEND | LOCK_EX);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Sets the fatal action
+	 * @param string $action Example "Class::Method"
+	 * @throws Exception if action is not callable
+	 */
+	public static function setFatalAction($action)
+	{
+		if (false === in_array($action, [self::FATAL_ACTION_DEVELOPMENT, self::FATAL_ACTION_PRODUCTION, self::FATAL_ACTION_SILENT], true)) {
+			$parts = explode('::', $action, 2);
+			if (false === is_callable($parts)) {
+				throw new Exception("Submitted action ($action) is not callable");
+			}
+		}
+		self::$fatal_action = $action;
+	}
+
+	/**
+	 * Sets timestamp for log, typecast as a string
+	 * @param string $timestamp
+	 */
+	public static function setTimestamp($timestamp)
+	{
+		self::$timestamp = (string) $timestamp;
 	}
 
 	/**
@@ -316,7 +328,7 @@ class Err {
 	 * @param $err_file
 	 * @param $err_line
 	 */
-	public static function handleError($err_no, $err_str, $err_file, $err_line)
+	public static function _handleError($err_no, $err_str, $err_file, $err_line)
 	{
 		// store error details
 		self::$errors[] = [
@@ -342,7 +354,7 @@ class Err {
 	 * Handles an Exception, registered with set_exception_handler()
 	 * @param Exception $e
 	 */
-	public static function handleException(Exception $e)
+	public static function _handleException(Exception $e)
 	{
 		self::$errors[] = [
 			'type' => self::TYPE_EXCEPTION,
@@ -356,146 +368,11 @@ class Err {
 		self::$error_count_fatal++;
 		self::performShutdownTasks();
 	}
-	
-	/**
-	 * Initialise error logging
-	 * @param array $parameters Array of parameters as expected by setParametersWithArray()
-	 * @throws Exception If log file does not exist or cannot be written to
-	 */
-	public static function initialise($parameters)
-	{
-		self::setParametersWithArray($parameters);
-		// check for write permissions to log file
-		$log_file_path = self::$log_directory . '/' . self::$log_file;
-		if (false === is_writable($log_file_path)) {
-			self::triggerFatal("Log file ($log_file_path) cannot be written to or does not exist");
-		}
-		// define errors that may be set as minor or major (errors that can passed to function defined by set_error_handler())
-		self::$errors_settable = E_WARNING | E_NOTICE | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_USER_NOTICE | E_STRICT | E_RECOVERABLE_ERROR | E_DEPRECATED | E_USER_DEPRECATED;
-		// use defaults if parameters not set
-		if (self::$timestamp === null) {
-			self::setTimestamp(date('c'));
-		}
-		if (self::$errors_minor === null) {
-			self::$errors_minor = E_NOTICE | E_USER_NOTICE | E_STRICT;
-		} else {
-			self::checkErrorsAreValid('minor');
-		}
-		if (self::$errors_major === null) {
-			self::$errors_major = E_WARNING | E_CORE_WARNING | E_COMPILE_WARNING | E_USER_WARNING | E_DEPRECATED | E_USER_DEPRECATED;
-		} else {
-			self::checkErrorsAreValid('major');
-		}
-		// do not display errors
-		error_reporting(0);
-		// register functions
-		set_error_handler('Err::handleError');
-		set_exception_handler('Err::handleException');
-		register_shutdown_function('Err::shutdownFunction');
-	}
 
 	/**
-	 * Checks if logging is required, logs if needed, clears log
-	 * @return bool If logging occurred true, otherwise false
+	 * Performs final checks before shutdown tasks are performed, registered as shutdown function
 	 */
-	public static function logErrors()
-	{
-		if (self::$error_count_fatal > 0 || self::$error_count_major > 0) {
-			$file_path = self::$log_directory . '/' . self::$log_file;
-			$data['timestamp'] = self::$timestamp;
-			$data['fatal_type'] = (self::$error_count_fatal > 0) ? self::getLast()['type'] : null;
-			if (self::$extra_log_data !== null) {
-				$data['data'] = self::$extra_log_data;
-			}
-			$data['errors'] = self::extract();
-			file_put_contents($file_path, json_encode($data) . "\n", FILE_APPEND | LOCK_EX);
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Sets the fatal action when in custom mode
-	 * @param string $action Example "Class::Method"
-	 * @throws Exception if action is not callable
-	 */
-	public static function setFatalActionCustom($action)
-	{
-		$parts = explode('::', $action, 2);
-		if (false === is_callable($parts)) {
-			throw new Exception("Submitted action ($action) is not callable");
-		}
-		self::$fatal_action_custom = $action;
-	}
-
-	/**
-	 * Sets the fatal action when in development mode
-	 * @param string $action Example "Class::Method"
-	 * @throws Exception if action is not callable
-	 */
-	public static function setFatalActionDevelopment($action)
-	{
-		$parts = explode('::', $action, 2);
-		if (false === is_callable($parts)) {
-			throw new Exception("Submitted action ($action) is not callable");
-		}
-		self::$fatal_action_development = $action;
-	}
-
-	/**
-	 * Sets the fatal action when in production mode
-	 * @param string $action Example "Class::Method"
-	 * @throws Exception if action is not callable
-	 */
-	public static function setFatalActionProduction($action)
-	{
-		$parts = explode('::', $action, 2);
-		if (false === is_callable($parts)) {
-			throw new Exception("Submitted action ($action) is not callable");
-		}
-		self::$fatal_action_production = $action;
-	}
-
-	/**
-	 * Sets the fatal action when in silent mode
-	 * @param string $action Example "Class::Method"
-	 * @throws Exception if action is not callable
-	 */
-	public static function setFatalActionSilent($action)
-	{
-		$parts = explode('::', $action, 2);
-		if (false === is_callable($parts)) {
-			throw new Exception("Submitted action ($action) is not callable");
-		}
-		self::$fatal_action_silent = $action;
-	}
-
-	/**
-	 * Sets mode which determines action in the event of a fatal error
-	 * @param int $input
-	 * @throws Exception if $input is not valid
-	 */
-	public static function setMode($input)
-	{
-		if (false === in_array($input, [self::MODE_CUSTOM, self::MODE_DEVELOPMENT, self::MODE_PRODUCTION, self::MODE_SILENT], true)) {
-			throw new Exception('Invalid mode submitted');
-		}
-		self::$mode = $input;
-	}
-
-	/**
-	 * Sets timestamp for log, typecast as a string
-	 * @param string $timestamp
-	 */
-	public static function setTimestamp($timestamp)
-	{
-		self::$timestamp = (string) $timestamp;
-	}
-
-	/**
-	 * Registered as shutdown function. Performs final checks before shutdown tasks are performed.
-	 */
-	public static function shutdownFunction()
+	public static function _shutdownFunction()
 	{
 		// no need to run if shutdown tasks have already been completed
 		if (self::$shutdown_tasks_complete === true) return;
@@ -506,68 +383,10 @@ class Err {
 		$error = error_get_last();
 		// If the last error has a match in $core_fatal pass details to handleError()
 		if ($error !== null && ($error['type'] & $core_fatal)) {
-			self::handleError($error['type'], $error['message'], $error['file'], $error['line']);
+			self::_handleError($error['type'], $error['message'], $error['file'], $error['line']);
 		} else {
 			self::performShutdownTasks();
 		}
-	}
-
-	/**
-	 * Triggers a fatal error
-	 * @param string $message
-	 */
-	public static function triggerFatal($message)
-	{
-		$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-		$details = array_shift($backtrace);
-		self::$errors[] = [
-			'type' => self::TYPE_CLASS_ERROR,
-			'code' => self::ERR_FATAL,
-			'message' => $message,
-			'file' => $details['file'],
-			'line' => $details['line'],
-			'backtrace' => $backtrace
-		];
-		self::$error_count_fatal++;
-		self::performShutdownTasks();
-	}
-
-	/**
-	 * Triggers a major error
-	 * @param string $message
-	 */
-	public static function triggerMajor($message)
-	{
-		$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-		$details = array_shift($backtrace);
-		self::$errors[] = [
-			'type' => self::TYPE_CLASS_ERROR,
-			'code' => self::ERR_MAJOR,
-			'message' => $message,
-			'file' => $details['file'],
-			'line' => $details['line'],
-			'backtrace' => $backtrace
-		];
-		self::$error_count_major++;
-	}
-
-	/**
-	 * Triggers a minor error
-	 * @param string $message
-	 */
-	public static function triggerMinor($message)
-	{
-		$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-		$details = array_shift($backtrace);
-		self::$errors[] = [
-			'type' => self::TYPE_CLASS_ERROR,
-			'code' => self::ERR_MINOR,
-			'message' => $message,
-			'file' => $details['file'],
-			'line' => $details['line'],
-			'backtrace' => $backtrace
-		];
-		self::$error_count_minor++;
 	}
 
 	/**
@@ -577,7 +396,7 @@ class Err {
 	 */
 	private static function checkErrorsAreValid($error_type)
 	{
-		if (true !== property_exists('Err', "errors_$error_type")) {
+		if (false === in_array($error_type, ['major', 'minor'])) {
 			throw new Exception('Invalid error type submitted');
 		}
 		if ((self::$errors_settable & self::${"errors_$error_type"}) !== self::${"errors_$error_type"}) {
@@ -586,47 +405,25 @@ class Err {
 	}
 
 	/**
-	 * Performs fatal action for custom mode
-	 */
-	private static function fatalActionCustom()
-	{
-		if (self::$fatal_action_custom === null) {
-			self::logErrors();
-			echo '<h1>Custom fatal action has run</h1><hr><p>Errors logged</p>';
-		} else {
-			call_user_func(self::$fatal_action_custom);
-		}
-	}
-
-	/**
 	 * Performs fatal action for development mode
 	 */
 	private static function fatalActionDevelopment()
 	{
-		if (self::$fatal_action_development === null) {
-			$last_error = self::getLast();
-			switch ($last_error['type']) {
-				case self::TYPE_CLASS_ERROR:
-					$heading = 'Err: '.self::getClassErrorName($last_error['code']);
-					break;
-				case self::TYPE_PHP_ERROR:
-					$heading = 'PHP Error: ' . self::getPhpErrorName($last_error['code']);
-					break;
-				default: // self::TYPE_EXCEPTION
-					$heading = 'Uncaught ' . $last_error['name'];
-			}
-			$data = self::extract(true);
-			echo '<!DOCTYPE html><head><meta charset="utf-8"><title>Fatal error</title>';
-			echo '<style>body{font-family:Helvetica,Arial,sans-serif;text-align:center}';
-			echo 'div{margin:50px auto;text-align:left;width:100%;max-width:1000px}</style></head>';
-			echo '<body><div><h1>' . $heading . '</h1><hr><pre>';
-			print_r($data['counts']);
-			echo '</pre><hr><pre>';
-			print_r($data['errors']);
-			echo '</pre></div></body></html>';
-		} else {
-			call_user_func(self::$fatal_action_development);
+		$last_error = self::getLast();
+		if ($last_error['type'] === self::TYPE_PHP_ERROR) {
+			$heading = 'PHP Error: ' . self::getErrorName($last_error['code']);
+		} else { // self::TYPE_EXCEPTION
+			$heading = 'Uncaught ' . $last_error['name'];
 		}
+		$data = self::extract(true);
+		echo '<!DOCTYPE html><head><meta charset="utf-8"><title>Fatal error</title>';
+		echo '<style>body{font-family:Helvetica,Arial,sans-serif;text-align:center}';
+		echo 'div{margin:50px auto;text-align:left;width:100%;max-width:1000px}</style></head>';
+		echo '<body><div><h1>' . $heading . '</h1><hr><pre>';
+		print_r($data['counts']);
+		echo '</pre><hr><pre>';
+		print_r($data['errors']);
+		echo '</pre></div></body></html>';
 	}
 
 	/**
@@ -634,14 +431,10 @@ class Err {
 	 */
 	private static function fatalActionProduction()
 	{
-		if (self::$fatal_action_production === null) {
-			self::logErrors();
-			echo '<!DOCTYPE html><head><title>Fatal error</title>';
-			echo '<style>body{text-align:center;font-family:Helvetica,Arial,sans-serif}h1{margin-top:50px}</style>';
-			echo '</head><body><h1>Application error</h1><p>Details have been logged</p></body></html>';
-		} else {
-			call_user_func(self::$fatal_action_production);
-		}
+		self::logErrors();
+		echo '<!DOCTYPE html><head><title>Fatal error</title>';
+		echo '<style>body{text-align:center;font-family:Helvetica,Arial,sans-serif}h1{margin-top:50px}</style>';
+		echo '</head><body><h1>Application error</h1><p>Details have been logged</p></body></html>';
 	}
 
 	/**
@@ -649,11 +442,7 @@ class Err {
 	 */
 	private static function fatalActionSilent()
 	{
-		if (self::$fatal_action_silent === null) {
-			self::logErrors();
-		} else {
-			call_user_func(self::$fatal_action_production);
-		}
+		self::logErrors();
 	}
 
 	/**
@@ -664,14 +453,14 @@ class Err {
 		self::$shutdown_tasks_complete = true;
 		if (self::$error_count_fatal === 0) {
 			self::logErrors();
-		} else if (self::$mode === self::MODE_CUSTOM) {
-			self::fatalActionCustom();
-		} else if (self::$mode === self::MODE_DEVELOPMENT) {
+		} else if (self::$fatal_action === self::FATAL_ACTION_DEVELOPMENT) {
 			self::fatalActionDevelopment();
-		} else if (self::$mode === self::MODE_PRODUCTION) {
+		} else if (self::$fatal_action === self::FATAL_ACTION_PRODUCTION) {
 			self::fatalActionProduction();
-		} else { // self::$mode === self::MODE_SILENT
+		} else if (self::$fatal_action === self::FATAL_ACTION_SILENT) {
 			self::fatalActionSilent();
+		} else {
+			call_user_func(self::$fatal_action);
 		}
 		exit;
 	}
@@ -726,13 +515,10 @@ class Err {
 		$key_map = [
 			'errors_major' => 'setErrorsMajor',
 			'errors_minor' => 'setErrorsMinor',
-			'fatal_action_development' => 'setFatalActionDevelopment',
-			'fatal_action_production' => 'setFatalActionProduction',
-			'fatal_action_silent' => 'setFatalActionSilent',
+			'fatal_action' => 'setFatalAction',
 			'log_data' => 'addLogData',
 			'log_directory' => 'setLogDirectory',
 			'log_file' => 'setLogFile',
-			'mode' => 'setMode',
 			'timestamp' => 'setTimestamp'
 		];
 		// check submitted keys are valid and submit values to defined methods
